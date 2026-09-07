@@ -1,0 +1,159 @@
+@import "tailwindcss";
+@import "./styles/theme.css";
+
+/* useTheme anade la clase .dark al <html>; sin esta linea Tailwind 4 liga la
+   variante dark: a prefers-color-scheme y el boton de tema no gobierna esas
+   utilidades: seguirian al sistema operativo. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─────────────────────────────────────────────────────────────
+   ESCALA DE RADIOS — una sola fuente de verdad
+
+   Antes convivian dos escalas: las utilidades rounded-* usaban los valores
+   por defecto de Tailwind y el CSS propio usaba var(--radius-*), con numeros
+   distintos. Al declararlas aqui, ambas pasan a ser lo mismo.
+
+   Regla por tipo de elemento:
+     rounded-sm   (6px)   chips y etiquetas pequenas
+     rounded-md   (8px)   CONTROLES: botones, inputs, selects, pestanas
+     rounded-lg   (12px)  SUPERFICIES: tarjetas, paneles, contenedores
+     rounded-xl   (16px)  CAPAS FLOTANTES: modales, menus, notificaciones
+     rounded-full         pildoras, insignias, avatares
+
+   Un elemento nunca debe ser mas redondo que su contenedor.
+   ───────────────────────────────────────────────────────────── */
+@theme {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+}
+
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  ::selection { background: var(--primary-200); color: var(--primary-900); }
+  .dark ::selection { background: var(--primary-700); color: var(--primary-100); }
+
+  input, textarea, select, button { font-family: var(--font-sans); }
+
+  /* Foco visible por defecto en toda la aplicacion (WCAG 2.4.7) */
+  :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  /* Velo ambiental muy sutil detras del contenido */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(ellipse 70% 40% at 0% 10%, rgba(63,110,163,0.04) 0%, transparent 60%);
+  }
+  .dark body::before {
+    background: radial-gradient(ellipse 70% 40% at 0% 10%, rgba(127,179,205,0.05) 0%, transparent 60%);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* ── Animaciones de entrada ──
+     Vocabulario corto a proposito: entrar desde abajo y aparecer escalando
+     cubren todos los casos de la aplicacion. */
+  .animate-in-up { animation: animUp 0.28s cubic-bezier(0.16,1,0.3,1) both; }
+  .animate-scale { animation: animScale 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+
+  @keyframes animUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes animScale {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── Esqueleto de carga ── */
+  .shimmer {
+    background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── Tabla generica ── */
+  .table-premium { width: 100%; border-collapse: separate; border-spacing: 0; }
+  .table-premium thead th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    white-space: nowrap;
+  }
+  .table-premium thead th:first-child { border-radius: var(--radius-md) 0 0 var(--radius-md); }
+  .table-premium thead th:last-child  { border-radius: 0 var(--radius-md) var(--radius-md) 0; }
+  .table-premium tbody tr { transition: background var(--transition-fast); }
+  .table-premium tbody tr:hover { background: var(--surface-hover); }
+  .table-premium tbody td {
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-primary);
+    vertical-align: middle;
+  }
+  .table-premium tbody tr:last-child td { border-bottom: none; }
+
+  /* ── Padron de pacientes: celdas mas aireadas ── */
+  .padron-table tbody tr:hover { background: var(--surface-hover); }
+  .padron-table tbody td { padding: 1rem 1.5rem; }
+  .padron-table thead th { padding: 0.9rem 1.5rem; }
+
+  /* En movil la tabla se desplaza dentro de su contenedor, nunca la pagina */
+  @media (max-width: 768px) {
+    .padron-table tbody td { padding: 0.75rem 1rem; }
+    .padron-table thead th { padding: 0.7rem 1rem; }
+  }
+
+  /* ── Barra de desplazamiento discreta ── */
+  .scrollbar-premium::-webkit-scrollbar { width: 5px; height: 5px; }
+  .scrollbar-premium::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-premium::-webkit-scrollbar-thumb { background: var(--neutral-300); border-radius: var(--radius-full); }
+  .scrollbar-premium::-webkit-scrollbar-thumb:hover { background: var(--neutral-400); }
+  .dark .scrollbar-premium::-webkit-scrollbar-thumb { background: var(--neutral-600); }
+
+  .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+}

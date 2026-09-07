@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.next/
+coverage/
+*.log
+.env
+.env.local
+.env.production
+*.sqlite
+data/
+.DS_Store
+Thumbs.db
+nul
+frontend.env
+*.pem
+infrastructure/.env
+backend/.env

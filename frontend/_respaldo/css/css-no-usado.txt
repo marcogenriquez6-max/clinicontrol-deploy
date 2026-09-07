@@ -1,0 +1,21 @@
+Reglas CSS sin uso movidas desde frontend/src/index.css durante PROMPT 9.
+Ninguna de estas reglas tenia referencias en el codigo (frontend/src/**).
+
+1) .page-break (0 referencias)
+   - Ubicacion original: index.css, bloque @media print, seccion "5. Saltos de pagina controlados por el documento".
+   - Regla:
+   .page-break { page-break-after: always !important; break-after: page !important; }
+
+2) html.print-ticket (0 referencias)
+   - Ubicacion original: index.css, bloque final "Ticket de turno: rollo termico de 80 mm".
+   - Reglas:
+   @media print {
+     .print-ticket & { }
+   }
+   html.print-ticket { }
+   @media print {
+     html.print-ticket #print-area { font-size: 10pt; }
+   }
+
+Nota: el ticket termico real usa #print-area con su propia @media print definida en TurnosPage.tsx
+(selector html.print-ticket #print-area), por lo que la regla global era redundante.

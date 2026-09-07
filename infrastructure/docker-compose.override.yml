@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  api:
+    container_name: hospital_api_dev
+    environment:
+      NODE_ENV: development
+      DB_SYNCHRONIZE: "true"
+    volumes:
+      - ../backend/src:/app/src
+    ports:
+      - "3001:3001"

@@ -1,0 +1,41 @@
+node_modules/
+dist/
+coverage/
+data/*.db
+data/*.sqlite
+data/token-blacklist.json
+*.log
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+infra/nginx/ssl/
+.turbo/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.exe
+angular-app/dist/
+apps/web-react/dist/
+.angular/
+angular-app/.angular/
+
+# Runtime
+data/
+!data/.gitkeep
+
+# Secrets - NEVER commit
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+infra/nginx/ssl/
+**/service-account.json

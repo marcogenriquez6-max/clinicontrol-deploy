@@ -1,0 +1,15 @@
+ARG NODE_VERSION=22-alpine
+
+FROM node:${NODE_VERSION} AS development
+WORKDIR /app
+
+RUN apk add --no-cache libc6-compat git
+
+ENV NODE_ENV=development
+
+COPY package.json package-lock.json* tsconfig*.json nest-cli.json ./
+RUN npm ci --no-audit --no-fund && npm cache clean --force
+
+EXPOSE 3001
+
+CMD ["npm", "run", "start"]

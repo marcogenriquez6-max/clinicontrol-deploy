@@ -1,0 +1,15 @@
+export * from './auth.types';
+export * from './paciente.types';
+export * from './cita.types';
+export * from './consulta.types';
+export * from './receta.types';
+export * from './alergia.types';
+export * from './vacuna.types';
+export * from './cirugia.types';
+export * from './sucursal.types';
+export * from './turno.types';
+export * from './servicio.types';
+export * from './bloqueo.types';
+export * from './pago.types';
+export type { Medico, Especialidad, HorarioMedico, SlotDisponible } from './medico.types';
+export type { TipoAtencionTipo } from './tipoAtencion.types';
