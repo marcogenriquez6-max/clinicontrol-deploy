@@ -6,9 +6,15 @@
 #
 # Uso: crear un "Blueprint" en Render apuntando a este repo y
 # archivo render.yaml. Render creará automáticamente:
-#   1. clinicontrol-db     -> PostgreSQL (ver comentario abajo)
+#   1. clinicontrol-db     -> PostgreSQL (definida en databases:)
 #   2. clinicontrol-app    -> Web Service Docker
 # ============================================================
+
+databases:
+  - name: clinicontrol-db
+    databaseName: clinicontrol
+    plan: free
+
 services:
   # ---------------- Web Service (frontend + API) ----------------
   - type: web
@@ -87,13 +93,3 @@ services:
       #   value: "6379"
       # - key: REDIS_PASSWORD
       #   value: <password>
-
-  # ---------------- PostgreSQL ----------------
-  # Nota: Render ofrecía PostgreSQL gratuito; si en tu cuenta ya no
-  # existe el plan free, esto aparecerá como servicio de pago. Puedes
-  # reemplazarlo por una base externa gratis (Neon/Supabase) ajustando
-  # las variables DB_* anteriores con sus datos.
-  - type: postgres
-    name: clinicontrol-db
-    databaseName: clinicontrol
-    plan: free
