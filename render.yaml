@@ -24,7 +24,6 @@ services:
     plan: free
     dockerContext: .
     dockerfilePath: ./Dockerfile.render
-    exposePort: 80
     healthCheckPath: /health
     autoDeploy: true
     envVars:
