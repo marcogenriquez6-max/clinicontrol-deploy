@@ -1,0 +1,99 @@
+# ============================================================
+# CliniControl - Render Blueprint
+# Un solo servicio web (Docker) que sirve frontend + API en el
+# mismo origen, de modo que las cookies de refresco (sameSite=strict)
+# funcionan sin configuración adicional.
+#
+# Uso: crear un "Blueprint" en Render apuntando a este repo y
+# archivo render.yaml. Render creará automáticamente:
+#   1. clinicontrol-db     -> PostgreSQL (ver comentario abajo)
+#   2. clinicontrol-app    -> Web Service Docker
+# ============================================================
+services:
+  # ---------------- Web Service (frontend + API) ----------------
+  - type: web
+    name: clinicontrol-app
+    runtime: docker
+    repo: https://github.com/marcogenriquez6-max/clinicontrol-deploy.git
+    plan: free
+    dockerContext: .
+    dockerfilePath: ./Dockerfile.render
+    exposePort: 80
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: "4000"
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGINS
+        value: https://clinicontrol-app.onrender.com
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_MFA_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+
+      # ---- Base de datos PostgreSQL ----
+      - key: DB_TYPE
+        value: postgres
+      - key: DB_HOST
+        fromDatabase:
+          name: clinicontrol-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: clinicontrol-db
+          property: port
+      - key: DB_USERNAME
+        fromDatabase:
+          name: clinicontrol-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: clinicontrol-db
+          property: password
+      - key: DB_DATABASE
+        fromDatabase:
+          name: clinicontrol-db
+          property: database
+      # Autocrea las tablas en el primer arranque (solo para simplificar
+      # el despliegue inicial). Cuando esté estable, cámbialo a false o
+      # usa migraciones.
+      - key: DB_SYNCHRONIZE
+        value: "true"
+      - key: DB_POOL_SIZE
+        value: "10"
+
+      # ---- Semilla de datos del primer arranque ----
+      - key: RUN_SEED
+        value: "true"
+      - key: ADMIN_PASSWORD
+        value: Admin123!
+
+      # ---- Redis (opcional, desactivado por defecto) ----
+      # Si quieres colas Bull / notificaciones reales, activa un Redis
+      # (por ejemplo Redis Cloud gratuito) y descomenta:
+      # - key: REDIS_ENABLED
+      #   value: "true"
+      # - key: REDIS_HOST
+      #   value: <host>
+      # - key: REDIS_PORT
+      #   value: "6379"
+      # - key: REDIS_PASSWORD
+      #   value: <password>
+
+  # ---------------- PostgreSQL ----------------
+  # Nota: Render ofrecía PostgreSQL gratuito; si en tu cuenta ya no
+  # existe el plan free, esto aparecerá como servicio de pago. Puedes
+  # reemplazarlo por una base externa gratis (Neon/Supabase) ajustando
+  # las variables DB_* anteriores con sus datos.
+  - type: postgres
+    name: clinicontrol-db
+    databaseName: clinicontrol
+    plan: free
