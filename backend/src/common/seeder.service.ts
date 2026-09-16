@@ -1392,7 +1392,7 @@ export class SeederService implements OnModuleInit {
         await runner.query(
           `TRUNCATE TABLE ${nombres
             .map((n) => `"${n}"`)
-            .join(', ')} CASCADE`,
+            .join(', ')} RESTART IDENTITY CASCADE`,
         );
       }
     } catch {
