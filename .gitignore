@@ -8,6 +8,7 @@ coverage/
 .env.production
 *.sqlite
 data/
+!frontend/src/data/
 .DS_Store
 Thumbs.db
 nul
