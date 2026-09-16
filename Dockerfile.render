@@ -29,6 +29,7 @@ RUN apk add --no-cache nginx tini && \
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4000
+ENV BACKEND_PORT=4001
 
 # Production deps only
 COPY package.json package-lock.json ./
