@@ -2,8 +2,10 @@ import { encabezadoInstitucional, obtenerLogo, descargarPdf, crearDocumentoPdf, 
 import type { Content } from 'pdfmake/interfaces';
 
 const getValue = (obj: unknown, ...keys: string[]) => {
+  if (!obj || typeof obj !== 'object') return null;
+  const o = obj as Record<string, unknown>;
   for (const key of keys) {
-    const v = obj?.[key];
+    const v = o[key];
     if (v !== undefined && v !== null) return v;
   }
   return null;
