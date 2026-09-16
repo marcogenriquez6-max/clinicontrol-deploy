@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { Repository } from 'typeorm';
 import { Rol } from '../entities/rol.entity';
 import { Genero } from '../entities/genero.entity';
@@ -72,6 +73,7 @@ export class SeederService implements OnModuleInit {
     private hospitalizacionRepo: Repository<Hospitalizacion>,
     @InjectRepository(Vacuna)
     private vacunaRepo: Repository<Vacuna>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async seed() {
@@ -80,11 +82,7 @@ export class SeederService implements OnModuleInit {
       return;
     }
 
-    const rolCount = await this.rolRepo.count();
-    if (rolCount > 0) {
-      this.logger.log('Datos ya cargados, omitiendo seeder');
-      return;
-    }
+    await this.limpiarDatos();
 
     const roles = await this.rolRepo.save([
       { nombre: 'admin' },
@@ -264,61 +262,61 @@ export class SeederService implements OnModuleInit {
     });
 
     let demoMedicoUserId: number | null = null;
-    if (process.env.NODE_ENV !== 'production') {
-      const demoPass = await bcrypt.hash('Demo2026!', 12);
-      const demoUsers = await this.usuarioRepo.save([
-        {
-          nombre: 'Gerente',
-          apellido: 'Demo',
-          ci: '1000000001',
-          email: 'gerente@clinica.com',
-          password: demoPass,
-          rolId: rolIdByName['gerente'],
-        },
-        {
-          nombre: 'Secretaria',
-          apellido: 'Demo',
-          ci: '1000000002',
-          email: 'secretaria@clinica.com',
-          password: demoPass,
-          rolId: rolIdByName['secretaria'],
-        },
-        {
-          nombre: 'Recepcionista',
-          apellido: 'Demo',
-          ci: '1111111111',
-          email: 'recepcion@clinica.com',
-          password: demoPass,
-          rolId: rolIdByName['recepcionista'],
-        },
-        {
-          nombre: 'Medico',
-          apellido: 'Demo',
-          ci: '2222222222',
-          email: 'medico@clinica.com',
-          password: demoPass,
-          rolId: rolIdByName['medico'],
-        },
-        {
-          nombre: 'Enfermeria',
-          apellido: 'Demo',
-          ci: '3333333333',
-          email: 'enfermeria@clinica.com',
-          password: demoPass,
-          rolId: rolIdByName['enfermeria'],
-        },
-      ]);
-      demoMedicoUserId = demoUsers[3].id ?? null; // usuario 'medico@clinica.com'
-      this.logger.warn(`========================================`);
-      this.logger.warn(`DEMO USERS (dev only) — contraseña: Demo2026!`);
-      this.logger.warn(`  admin@clinica.com / ${adminPassword}`);
-      this.logger.warn(`  gerente@clinica.com / Demo2026!`);
-      this.logger.warn(`  secretaria@clinica.com / Demo2026!`);
-      this.logger.warn(`  recepcion@clinica.com / Demo2026!`);
-      this.logger.warn(`  medico@clinica.com / Demo2026!`);
-      this.logger.warn(`  enfermeria@clinica.com / Demo2026!`);
-      this.logger.warn(`========================================`);
-    }
+    let demoEnfermeriaUserId: number | null = null;
+    const demoPass = await bcrypt.hash('Demo2026!', 12);
+    const demoUsers = await this.usuarioRepo.save([
+      {
+        nombre: 'Gerente',
+        apellido: 'Demo',
+        ci: '1000000001',
+        email: 'gerente@clinica.com',
+        password: demoPass,
+        rolId: rolIdByName['gerente'],
+      },
+      {
+        nombre: 'Secretaria',
+        apellido: 'Demo',
+        ci: '1000000002',
+        email: 'secretaria@clinica.com',
+        password: demoPass,
+        rolId: rolIdByName['secretaria'],
+      },
+      {
+        nombre: 'Recepcionista',
+        apellido: 'Demo',
+        ci: '1111111111',
+        email: 'recepcion@clinica.com',
+        password: demoPass,
+        rolId: rolIdByName['recepcionista'],
+      },
+      {
+        nombre: 'Medico',
+        apellido: 'Demo',
+        ci: '2222222222',
+        email: 'medico@clinica.com',
+        password: demoPass,
+        rolId: rolIdByName['medico'],
+      },
+      {
+        nombre: 'Enfermeria',
+        apellido: 'Demo',
+        ci: '3333333333',
+        email: 'enfermeria@clinica.com',
+        password: demoPass,
+        rolId: rolIdByName['enfermeria'],
+      },
+    ]);
+    demoMedicoUserId = demoUsers[3].id ?? null; // usuario 'medico@clinica.com'
+    demoEnfermeriaUserId = demoUsers[4].id ?? null; // usuario 'enfermeria@clinica.com'
+    this.logger.warn(`========================================`);
+    this.logger.warn(`DEMO USERS — contraseña: Demo2026!`);
+    this.logger.warn(`  admin@clinica.com / ${adminPassword}`);
+    this.logger.warn(`  gerente@clinica.com / Demo2026!`);
+    this.logger.warn(`  secretaria@clinica.com / Demo2026!`);
+    this.logger.warn(`  recepcion@clinica.com / Demo2026!`);
+    this.logger.warn(`  medico@clinica.com / Demo2026!`);
+    this.logger.warn(`  enfermeria@clinica.com / Demo2026!`);
+    this.logger.warn(`========================================`);
 
     const doctores = await this.medicoRepo.save([
       {
@@ -1208,7 +1206,7 @@ export class SeederService implements OnModuleInit {
     await this.triageRepo.save([
       {
         pacienteId: masPacientes[6].id,
-        realizadoPorId: 6,
+        realizadoPorId: demoEnfermeriaUserId ?? 1,
         fechaHora: dias(0),
         estado: 'en_espera',
         esiNivel: 2,
@@ -1224,7 +1222,7 @@ export class SeederService implements OnModuleInit {
       },
       {
         pacienteId: masPacientes[2].id,
-        realizadoPorId: 6,
+        realizadoPorId: demoEnfermeriaUserId ?? 1,
         fechaHora: dias(0),
         estado: 'en_espera',
         esiNivel: 3,
@@ -1240,7 +1238,7 @@ export class SeederService implements OnModuleInit {
       },
       {
         pacienteId: masPacientes[12].id,
-        realizadoPorId: 6,
+        realizadoPorId: demoEnfermeriaUserId ?? 1,
         fechaHora: dias(0),
         estado: 'en_espera',
         esiNivel: 4,
@@ -1256,7 +1254,7 @@ export class SeederService implements OnModuleInit {
       },
       {
         pacienteId: masPacientes[9].id,
-        realizadoPorId: 6,
+        realizadoPorId: demoEnfermeriaUserId ?? 1,
         fechaHora: dias(0),
         estado: 'en_atencion',
         esiNivel: 3,
@@ -1272,7 +1270,7 @@ export class SeederService implements OnModuleInit {
       },
       {
         pacienteId: masPacientes[3].id,
-        realizadoPorId: 6,
+        realizadoPorId: demoEnfermeriaUserId ?? 1,
         fechaHora: dias(0),
         estado: 'completado',
         esiNivel: 5,
@@ -1377,5 +1375,31 @@ export class SeederService implements OnModuleInit {
     this.logger.log(`✅ ${vacunas.length} vacunas en catálogo`);
 
     this.logger.log('✅ Datos iniciales cargados correctamente');
+  }
+
+  private async limpiarDatos() {
+    this.logger.log('🧹 Limpiando datos previos...');
+    const runner = this.dataSource.createQueryRunner();
+    try {
+      await runner.connect();
+      const tablas = await runner.query(
+        'SELECT tablename FROM pg_tables WHERE schemaname = current_schema()',
+      );
+      const nombres = (tablas as { tablename: string }[]).map(
+        (t) => t.tablename,
+      );
+      if (nombres.length > 0) {
+        await runner.query(
+          `TRUNCATE TABLE ${nombres
+            .map((n) => `"${n}"`)
+            .join(', ')} CASCADE`,
+        );
+      }
+    } catch {
+      // Primer arranque u otra base: TypeORM synchronize creará las tablas.
+      this.logger.warn('No se pudo truncar (primer arranque?)');
+    } finally {
+      await runner.release();
+    }
   }
 }
