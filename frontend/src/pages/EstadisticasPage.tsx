@@ -33,7 +33,7 @@ export default function EstadisticasPage() {
     catch (e) { toast('error', 'No se pudieron cargar las estadísticas', errMsg(e)); }
     finally { setLoading(false); }
   };
-  useEffect(() => { const t = setTimeout(load, 0); return () => clearTimeout(t); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => { const t = setTimeout(load, 0); return () => clearTimeout(t);   }, []);
 
   const imprimir = () => data && imprimirReporte('Estadísticas del período', periodoTexto(desde, hasta), [
     { titulo: 'Totales', resumen: [{ label: 'Consultas', value: data.totales.consultas }, { label: 'Citas', value: data.totales.citas }, { label: 'Triajes', value: data.totales.triajes }, { label: 'Pacientes nuevos', value: data.totales.pacientesNuevos }] },

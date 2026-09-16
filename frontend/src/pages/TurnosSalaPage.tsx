@@ -18,6 +18,7 @@ const ESTADO_LABEL: Record<string, string> = {
 
 export default function TurnosSalaPage() {
   const [turnos, setTurnos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [tiempoReal, setTiempoReal] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState<string>('todos');
@@ -28,6 +29,7 @@ export default function TurnosSalaPage() {
       const data = res.data ?? []
       setTurnos(data);
     } catch { /* sin conexion: se reintenta automaticamente */ }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
@@ -197,7 +199,20 @@ export default function TurnosSalaPage() {
 
       {/* Lista completa de turnos */}
       <Card>
-        {turnosFiltrados.length === 0 ? (
+        {loading && turnos.length === 0 ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-4 rounded-lg border border-[var(--border-primary)]">
+                <div className="w-14 h-14 shimmer rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 shimmer rounded w-1/3" />
+                  <div className="h-3 shimmer rounded w-1/2" />
+                </div>
+                <div className="h-8 shimmer rounded-lg w-24" />
+              </div>
+            ))}
+          </div>
+        ) : turnosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-[var(--text-tertiary)]">
             <Users className="w-12 h-12 text-[var(--text-tertiary)]" />
             <p className="text-sm font-medium">No hay turnos</p>

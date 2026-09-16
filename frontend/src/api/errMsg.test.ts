@@ -15,7 +15,7 @@ describe('errMsg', () => {
   });
 
   it('cae al fallback cuando no hay response ni message', () => {
-    expect(errMsg({})).toBe('Intente nuevamente');
+    expect(errMsg({})).toBe('No se pudo completar la acción. Intente nuevamente.');
   });
 
   it('cae al mensaje de error plano si no hay response', () => {
@@ -27,6 +27,6 @@ describe('errMsg', () => {
   });
 
   it('cae al fallback ante datos no estructurados', () => {
-    expect(errMsg('texto plano')).toBe('Intente nuevamente');
+    expect(errMsg('texto plano')).toBe('No se pudo completar la acción. Intente nuevamente.');
   });
 });

@@ -56,6 +56,16 @@ export class ConsultaRepositoryAdapter implements ConsultaRepositoryPort {
     domain.createdAt = orm.createdAt;
     domain.updatedAt = orm.updatedAt;
 
+    if (orm.medico) {
+      domain.medico = {
+        id: orm.medico.id,
+        nombre: orm.medico.nombre,
+        apellido: orm.medico.apellido,
+        especialidad: orm.medico.especialidad?.nombre,
+        especialidadId: orm.medico.especialidadId,
+      };
+    }
+
     domain.agregarSignosVitales({
       presionArterialSistolica: orm.presionArterialSistolica,
       presionArterialDiastolica: orm.presionArterialDiastolica,
@@ -72,9 +82,42 @@ export class ConsultaRepositoryAdapter implements ConsultaRepositoryPort {
       for (const d of orm.diagnosticos) {
         domain.agregarDiagnostico({
           cie10Id: d.cie10Id,
+          codigoCie10: d.cie10?.codigo,
           descripcion: d.descripcion,
           tipo: d.tipo as DiagnosticoEntry['tipo'],
           esCronico: d.esCronico || false,
+          cie10: d.cie10
+            ? {
+                id: d.cie10.id,
+                codigo: d.cie10.codigo,
+                descripcion: d.cie10.descripcion,
+              }
+            : undefined,
+        });
+      }
+    }
+
+    if (orm.recetas) {
+      for (const r of orm.recetas) {
+        domain.agregarReceta({
+          id: r.id,
+          estado: r.estado,
+          instrucciones: r.instrucciones,
+          createdAt: r.createdAt,
+          items: (r.items || []).map((item) => ({
+            id: item.id,
+            medicamentoId: item.medicamentoId,
+            medicamentoNombre:
+              item.medicamento?.nombre ||
+              (item as unknown as { medicamentoNombre?: string })
+                .medicamentoNombre,
+            dosis: item.dosis,
+            frecuencia: item.frecuencia,
+            duracion: item.duracion,
+            observaciones: item.observaciones,
+            cantidad: item.cantidad,
+            cantidadDispensada: item.cantidadDispensada,
+          })),
         });
       }
     }

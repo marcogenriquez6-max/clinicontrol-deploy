@@ -14,6 +14,7 @@ import { errMsg } from '../api/errMsg';
 export default function SignosVitalesPage() {
   const { pacientes, fetchPacientes } = useStore();
   const [registros, setRegistros] = useState<Triage[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fecha, setFecha] = useState(hoyIso());
   const [busqueda, setBusqueda] = useState('');
   const [modal, setModal] = useState(false);
@@ -22,6 +23,7 @@ export default function SignosVitalesPage() {
     try {
       setRegistros(lista<Triage>(await triageService.getAll({ limit: 500 })));
     } catch (e) { toast('error', 'No se pudieron cargar los registros', errMsg(e)); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
@@ -86,7 +88,8 @@ export default function SignosVitalesPage() {
               <tr><th>Hora</th><th>Paciente</th><th className="text-right">T° (°C)</th><th>PA</th><th className="text-right">FC</th><th className="text-right">FR</th><th className="text-right">SpO₂</th><th className="text-right">Peso</th><th className="text-right">Talla</th><th className="text-center">ESI</th><th>Observaciones</th></tr>
             </thead>
             <tbody>
-              {filtrados.length === 0 && <tr><td colSpan={11} className="text-center py-10 text-[var(--text-tertiary)]">Sin registros para la fecha seleccionada</td></tr>}
+              {loading && filtrados.length === 0 && <tr><td colSpan={11} className="text-center py-10 text-[var(--text-tertiary)]"><span className="inline-flex items-center gap-2"><span className="w-4 h-4 border-2 border-[var(--text-tertiary)] border-t-transparent rounded-full animate-spin" />Cargando registros…</span></td></tr>}
+              {!loading && filtrados.length === 0 && <tr><td colSpan={11} className="text-center py-10 text-[var(--text-tertiary)]">Sin registros para la fecha seleccionada</td></tr>}
               {filtrados.map((r) => (
                 <tr key={r.id}>
                   <td className="tabular-nums whitespace-nowrap">{fmtFecha(r.fechaHora, true)}</td>

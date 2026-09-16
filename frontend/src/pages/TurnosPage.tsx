@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
-import { ClipboardList, Ticket, Printer, Users, Eye, Play, CheckCircle, XCircle, Monitor, DollarSign, Stethoscope, FlaskConical, Syringe, HeartPulse, Microscope, Waves, Baby, ShieldPlus, Droplets, Siren, Activity } from 'lucide-react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { ClipboardList, Ticket, Printer, Users, Eye, Play, CheckCircle, XCircle, Monitor, DollarSign, Stethoscope, FlaskConical, Syringe, HeartPulse, Microscope, Waves, Baby, ShieldPlus, Droplets, Siren, Activity, Check } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button, Card, Modal, Input } from '../components/ui';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { toast } from '../components/ui/Toast';
 import PageHeader from '../components/ui/PageHeader';
 import { turnoService, medicoService, pacienteService, tipoAtencionService, especialidadService } from '../api/services';
@@ -30,6 +31,24 @@ const iconoServicio = (nombre: string): LucideIcon => {
   if (n.includes('vacuna')) return ShieldPlus;
   return Stethoscope;
 };
+
+/** Indicador de paso del flujo: check si está completado, número si está pendiente. */
+function StepLabel({ n, children, done }: { n: number; children: ReactNode; done: boolean }) {
+  return (
+    <p className="text-sm font-semibold text-[var(--text-primary)] mb-2 flex items-center gap-1.5">
+      <span
+        className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-white text-xs font-bold mr-0.5 transition-all ${
+          done ? 'bg-[var(--success-500)]' : 'bg-[var(--primary-600)]'
+        }`}
+        aria-hidden
+      >
+        {done ? <Check className="w-3 h-3" /> : n}
+      </span>
+      {children}
+      {done && <span className="text-xs font-medium text-[var(--success-600)]">✓ Listo</span>}
+    </p>
+  );
+}
 
 function TicketPreview({ turno, printRef }: { turno: Turno; printRef?: React.RefObject<HTMLDivElement | null> }) {
     const ahora = new Date();
@@ -95,6 +114,7 @@ export default function TurnosPage() {
   const [, setShowRegistro] = useState(false);
   const [turnoActual, setTurnoActual] = useState<Turno | null>(null);
   const [showConfirmPago, setShowConfirmPago] = useState(false);
+  const [warnAbandonar, setWarnAbandonar] = useState(false);
   const [modalTurno, setModalTurno] = useState<Turno | null>(null);
   const [pacienteQuery, setPacienteQuery] = useState('');
   const [pacienteSel, setPacienteSel] = useState<Paciente | null>(null);
@@ -145,6 +165,19 @@ export default function TurnosPage() {
     };
     fetchData();
   }, []);
+
+  // Refresco en tiempo real del tablero Kanban y pantalla TV
+  useEffect(() => {
+    if (activeSection !== 'sala' && activeSection !== 'pantalla') return;
+    const refresh = async () => {
+      try {
+        const turnosRes = await turnoService.getAll({ limit: 100 });
+        setTurnos(Array.isArray(turnosRes) ? turnosRes : (turnosRes as { data?: Turno[] })?.data ?? []);
+      } catch { /* silencioso */ }
+    };
+    const id = setInterval(refresh, 10000);
+    return () => clearInterval(id);
+  }, [activeSection]);
 
   // Cargar servicios reales según la especialidad seleccionada (Req 26)
   useEffect(() => {
@@ -243,7 +276,7 @@ export default function TurnosPage() {
         fechaProgramada: fechaSel,
         horaProgramada: horaSel,
       });
-      const creado = turnoRes.data ?? turnoRes;
+      const creado = (turnoRes.data ?? turnoRes) as Turno;
       setTurnos(prev => [...prev, creado]);
       setTurnoActual(creado);
       setShowConfirmPago(true);
@@ -390,10 +423,7 @@ export default function TurnosPage() {
               <Card title="Emitir turno nuevo" subtitle="Flujo: paciente → tipo de atención → especialidad → servicio → médico y horario">
                 {/* ══ 1. BUSCAR PACIENTE ══ */}
                 <div className="mb-6">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary-600)] text-white text-xs mr-1.5">1</span>
-                    Buscar paciente
-                  </p>
+                  <StepLabel n={1} done={Boolean(pacienteSel)}>Buscar paciente</StepLabel>
                   {pacienteSel ? (
                     <div className="flex items-center gap-3 p-3 rounded-xl border-2 border-[var(--primary-600)] bg-[var(--primary-50)]">
                       <div className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shrink-0" style={{ backgroundColor: 'var(--primary-600)' }}>
@@ -445,10 +475,7 @@ export default function TurnosPage() {
 
                 {/* ══ 2. TIPO DE ATENCIÓN ══ */}
                 <div className="mb-6">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary-600)] text-white text-xs mr-1.5">2</span>
-                    Tipo de atención
-                  </p>
+                  <StepLabel n={2} done={Boolean(selectedTipoId)}>Tipo de atención</StepLabel>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                     {servicios.map((sv) => {
                       const SIcon = sv.Icono;
@@ -470,10 +497,7 @@ export default function TurnosPage() {
 
                 {/* ══ 3. ESPECIALIDAD ══ */}
                 <div className="mb-6">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary-600)] text-white text-xs mr-1.5">3</span>
-                    Especialidad
-                  </p>
+                  <StepLabel n={3} done={Boolean(selEspecialidad)}>Especialidad</StepLabel>
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                     {especialidades.map((esp) => {
                       const activo = selEspecialidad === esp.id;
@@ -494,10 +518,7 @@ export default function TurnosPage() {
 
                 {/* ══ 4. SERVICIO ══ */}
                 <div className="mb-6">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary-600)] text-white text-xs mr-1.5">4</span>
-                    Servicio
-                  </p>
+                  <StepLabel n={4} done={Boolean(selServicioRea)}>Servicio</StepLabel>
                   {selEspecialidad ? (
                     serviciosReales.length === 0 ? (
                       <p className="text-sm text-[var(--text-tertiary)]">Sin servicios configurados para esta especialidad.</p>
@@ -525,10 +546,7 @@ export default function TurnosPage() {
 
                 {/* ══ 5. MÉDICO Y HORARIO ══ */}
                 <div className="mb-2">
-                  <p className="text-sm font-semibold text-[var(--text-primary)] mb-2">
-                    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary-600)] text-white text-xs mr-1.5">5</span>
-                    Médico
-                  </p>
+                  <StepLabel n={5} done={Boolean(horaSel)}>Médico y horario</StepLabel>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4 max-h-44 overflow-y-auto pr-1">
                     {medicos.filter(m => !selEspecialidad || String(m.especialidadId) === String(selEspecialidad) || String(m.especialidad?.id) === String(selEspecialidad)).map((m) => {
                       const activo = medicoIdSel === m.id;
@@ -624,10 +642,10 @@ export default function TurnosPage() {
 
       {/* SECCIÓN SALA DE ESPERA — flujo kanban */}
       {activeSection === 'sala' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
           {([
             { titulo: 'Esperando', lista: turnosEnEspera, color: 'var(--warning-500)', accion: llamarTurno, label: 'Llamar', Icono: Play },
-            { titulo: 'Llamados (esperando)', lista: turnosLlamados, color: 'var(--primary-600)', accion: iniciarAtencion, label: 'Iniciar', Icono: CheckCircle },
+            { titulo: 'Llamados', lista: turnosLlamados, color: 'var(--primary-600)', accion: iniciarAtencion, label: 'Iniciar', Icono: CheckCircle },
           ] as const).map(col => (
             <Card key={col.titulo} title={col.titulo} subtitle={`${col.lista.length} paciente(s)`}>
               {col.lista.length === 0 ? (
@@ -655,27 +673,6 @@ export default function TurnosPage() {
             </Card>
           ))}
 
-          <Card title="Finalizados" subtitle={`${turnosAtendidos.length} paciente(s)`}>
-            {turnosAtendidos.length === 0 ? (
-              <p className="text-center py-10 text-sm text-[var(--text-tertiary)]">Sin pacientes</p>
-            ) : (
-              <div className="space-y-2">
-                {turnosAtendidos.map(t => (
-                  <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] opacity-80">
-                    <span className="w-10 h-10 rounded-md flex items-center justify-center text-sm font-bold text-white tabular-nums shrink-0" style={{ backgroundColor: 'var(--success-500)' }}>
-                      {numeroTurno(t.numero, t.prefijo)}
-                    </span>
-                    <div className="min-w-0">
-                      <p className="font-medium text-[var(--text-primary)] truncate">{t.pacienteNombre}</p>
-                      <p className="text-xs text-[var(--text-tertiary)] truncate">{t.medicoNombre} · Cons. {t.consultorio}</p>
-                    </div>
-                    <CheckCircle className="w-4 h-4 ml-auto shrink-0" style={{ color: 'var(--success-500)' }} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-
           <Card title="En Atención" subtitle={`${turnosAtencion.length} consulta(s) en curso`}>
             {turnosAtencion.length === 0 ? (
               <p className="text-center py-10 text-sm text-[var(--text-tertiary)]">Sin consultas activas</p>
@@ -700,6 +697,27 @@ export default function TurnosPage() {
                         <XCircle className="w-4 h-4 text-[var(--danger-500)]" />
                       </Button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card title="Finalizados" subtitle={`${turnosAtendidos.length} paciente(s)`}>
+            {turnosAtendidos.length === 0 ? (
+              <p className="text-center py-10 text-sm text-[var(--text-tertiary)]">Sin pacientes</p>
+            ) : (
+              <div className="space-y-2">
+                {turnosAtendidos.map(t => (
+                  <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] opacity-80">
+                    <span className="w-10 h-10 rounded-md flex items-center justify-center text-sm font-bold text-white tabular-nums shrink-0" style={{ backgroundColor: 'var(--success-500)' }}>
+                      {numeroTurno(t.numero, t.prefijo)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-[var(--text-primary)] truncate">{t.pacienteNombre}</p>
+                      <p className="text-xs text-[var(--text-tertiary)] truncate">{t.medicoNombre} · Cons. {t.consultorio}</p>
+                    </div>
+                    <CheckCircle className="w-4 h-4 ml-auto shrink-0" style={{ color: 'var(--success-500)' }} />
                   </div>
                 ))}
               </div>
@@ -826,11 +844,11 @@ export default function TurnosPage() {
             </div>
 
             <div className="flex flex-wrap justify-end gap-3 pt-2">
-              <Button variant="ghost" onClick={() => enviarWhatsApp(turnoActual)}>
-                Enviar por WhatsApp
+              <Button variant="ghost" onClick={() => enviarWhatsApp(turnoActual)} disabled={!turnoActual.pacienteTel} title={turnoActual.pacienteTel ? undefined : 'El paciente no tiene teléfono registrado'}>
+                {turnoActual.pacienteTel ? 'Enviar por WhatsApp' : 'Sin teléfono registrado'}
               </Button>
-              <Button variant="secondary" onClick={() => { setShowConfirmPago(false); setTurnoActual(null); resetFlujo(); }}>
-                Nuevo turno
+              <Button variant="secondary" onClick={() => setWarnAbandonar(true)} title="El turno quedará emitido sin cobro; podrá cobrarlo después desde Pagos">
+                Emitir sin pagar
               </Button>
               <Button variant="primary" size="lg" onClick={confirmarPago}>
                 <DollarSign className="w-4 h-4" />
@@ -840,6 +858,17 @@ export default function TurnosPage() {
           </div>
         )}
       </Modal>
+
+      <ConfirmDialog
+        isOpen={warnAbandonar}
+        onClose={() => setWarnAbandonar(false)}
+        title="Turno sin pago registrado"
+        message="Este turno aún no ha sido cobrado. Si continúa, el turno quedará emitido sin pago y deberá cobrarlo después."
+        confirmText="Emitir sin pagar"
+        cancelText="Registrar pago"
+        variant="warning"
+        onConfirm={() => { setWarnAbandonar(false); setShowConfirmPago(false); setTurnoActual(null); resetFlujo(); }}
+      />
 
       {/* Modal detalle turno */}
       <Modal isOpen={!!modalTurno} onClose={() => setModalTurno(null)} title={`Turno #${numeroTurno(modalTurno?.numero, modalTurno?.prefijo)}`} size="sm" accent="primary">

@@ -7,18 +7,18 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
-  ManyToMany,
   JoinTable,
+  ManyToMany,
 } from 'typeorm';
 import { Genero } from './genero.entity';
 import { GrupoSanguineo } from './grupo-sanguineo.entity';
 import { Usuario } from './usuario.entity';
 import { Cita } from './cita.entity';
 import { Consulta } from './consulta.entity';
-import { Sucursal } from './sucursal.entity';
 import { Alergia } from './alergia.entity';
 import { PacienteVacuna } from './vacuna.entity';
 import { CirugiaPrevia } from './cirugia-previa.entity';
+import { Sucursal } from './sucursal.entity';
 
 @Entity('paciente')
 export class Paciente {
@@ -76,15 +76,15 @@ export class Paciente {
   @JoinColumn({ name: 'usuario_registro_id' })
   usuarioRegistro: Usuario;
 
-  @Column({ default: true })
-  activo: boolean;
-
   @Column({ name: 'sucursal_id', nullable: true })
   sucursalId: number;
 
   @ManyToOne(() => Sucursal, (s) => s.pacientes)
   @JoinColumn({ name: 'sucursal_id' })
   sucursal: Sucursal;
+
+  @Column({ default: true })
+  activo: boolean;
 
   @ManyToMany(() => Alergia, (a) => a.pacientes)
   @JoinTable({

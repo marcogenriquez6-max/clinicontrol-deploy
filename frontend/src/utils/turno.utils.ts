@@ -10,7 +10,7 @@ export function numeroTurno(
 /** Estados internos del turno → etiqueta que ve el usuario (según el documento de grado). */
 export const ESTADO_TURNO_LABEL: Record<string, string> = {
   espera: 'Esperando',
-  llamado: 'Esperando',
+  llamado: 'Llamado',
   atencion: 'En atención',
   completado: 'Finalizado',
   cancelado: 'Cancelado',
@@ -26,8 +26,9 @@ export type BadgeVariant = 'primary' | 'success' | 'danger' | 'warning' | 'info'
 export function estadoTurnoVariant(estado?: string): BadgeVariant {
   switch (estado) {
     case 'espera':
-    case 'llamado':
       return 'warning';
+    case 'llamado':
+      return 'info';
     case 'atencion':
       return 'primary';
     case 'completado':

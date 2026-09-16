@@ -29,6 +29,7 @@ import {
   UpdateConsultaDto,
 } from '../dto/create-consulta.dto';
 import { CreateConsultaCompletaDto } from '../dto/create-consulta-completa.dto';
+import { ContinuarConsultaDto } from '../dto/continuar-consulta.dto';
 import { CreateNotaEvolucionDto } from '../dto/create-nota-evolucion.dto';
 
 @ApiTags('Consultas Médicas')
@@ -207,42 +208,44 @@ export class ConsultaController {
   @ApiResponse({ status: 201, description: 'Consulta continuada creada' })
   continuar(
     @Param('id', ParseIntPipe) id: number,
-    @Body(ValidationPipe) dto: CreateConsultaCompletaDto,
+    @Body(ValidationPipe) dto: ContinuarConsultaDto,
     @CurrentUser() user: { id: number },
   ) {
-    return this.consultaService.continuarConsulta(id, user.id, {
-      motivoConsulta: dto.motivoConsulta,
-      sintomas: dto.sintomas,
-      enfermedadActual: dto.enfermedadActual,
-      examenFisico: dto.examenFisico,
-      evaluacion: dto.evaluacion,
-      planTratamiento: dto.planTratamiento,
-      indicaciones: dto.indicaciones,
-      peso: dto.peso,
-      talla: dto.talla,
-      temperatura: dto.temperatura,
-      frecuenciaCardiaca: dto.frecuenciaCardiaca,
-      frecuenciaRespiratoria: dto.frecuenciaRespiratoria,
-      presionArterialSistolica: dto.presionArterialSistolica,
-      presionArterialDiastolica: dto.presionArterialDiastolica,
-      saturacionOxigeno: dto.saturacionOxigeno,
-      glucosaCapilar: dto.glucosaCapilar,
-      diagnosticos: dto.diagnosticos.map((d) => ({
-        cie10Id: d.cie10Id,
-        descripcion: d.descripcion,
-        tipo: d.tipo,
-        esCronico: d.esCronico ?? false,
-      })),
-      recetas: dto.recetas?.map((r) => ({
-        medicamentoId: r.medicamentoId,
-        dosis: r.dosis,
-        frecuencia: r.frecuencia,
-        duracion: r.duracion,
-        cantidad: r.cantidad,
-        observaciones: r.observaciones,
-      })),
-      motivoContinuacion: dto.motivoContinuacion,
-    });
+    return this.consultaService.medicoIdDeUsuario(user.id).then((medicoId) =>
+      this.consultaService.continuarConsulta(id, medicoId, {
+        motivoConsulta: dto.motivoConsulta,
+        sintomas: dto.sintomas,
+        enfermedadActual: dto.enfermedadActual,
+        examenFisico: dto.examenFisico,
+        evaluacion: dto.evaluacion,
+        planTratamiento: dto.planTratamiento,
+        indicaciones: dto.indicaciones,
+        peso: dto.peso,
+        talla: dto.talla,
+        temperatura: dto.temperatura,
+        frecuenciaCardiaca: dto.frecuenciaCardiaca,
+        frecuenciaRespiratoria: dto.frecuenciaRespiratoria,
+        presionArterialSistolica: dto.presionArterialSistolica,
+        presionArterialDiastolica: dto.presionArterialDiastolica,
+        saturacionOxigeno: dto.saturacionOxigeno,
+        glucosaCapilar: dto.glucosaCapilar,
+        diagnosticos: dto.diagnosticos.map((d) => ({
+          cie10Id: d.cie10Id,
+          descripcion: d.descripcion,
+          tipo: d.tipo,
+          esCronico: d.esCronico ?? false,
+        })),
+        recetas: dto.recetas?.map((r) => ({
+          medicamentoId: r.medicamentoId,
+          dosis: r.dosis,
+          frecuencia: r.frecuencia,
+          duracion: r.duracion,
+          cantidad: r.cantidad,
+          observaciones: r.observaciones,
+        })),
+        motivoContinuacion: dto.motivoContinuacion,
+      }),
+    );
   }
 
   @Post(':id/nota')

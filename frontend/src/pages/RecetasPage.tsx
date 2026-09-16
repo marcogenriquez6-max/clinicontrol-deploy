@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Pill, Eye, Printer, FileText, AlertTriangle, Plus, X, Search } from 'lucide-react';
+import { Pill, Eye, Printer, FileText, AlertTriangle, Plus, X, Search, Check, Save, Trash2 } from 'lucide-react';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { Button, Badge, Modal, Select, Textarea, Card, PharmaAlertList, FilterBar } from '../components/ui';
@@ -7,8 +7,30 @@ import type { PharmaSeverity, FilterChip } from '../components/ui';
 import PageHeader from '../components/ui/PageHeader';
 import { toast } from '../components/ui/Toast';
 import { recetaService, alergiaService, consultaService, reportesService } from '../api/services';
+import { errMsg } from '../api/errMsg';
 import { useStore } from '../store';
 import type { Receta, RecetaMedicamento, Medicamento, Alergia } from '../types';
+
+interface RecetaFormMedicamento {
+  medicamentoId: string;
+  nombre: string;
+  dosis: string;
+  frecuencia: string;
+  duracion: string;
+  cantidad: number;
+  observaciones: string;
+}
+
+interface RecetaBorrador {
+  selectedPatientId: number | null;
+  pacienteNombre: string;
+  medicoNombre: string;
+  instrucciones: string;
+  medicamentos: RecetaFormMedicamento[];
+  guardadoEn: string;
+}
+
+const DRAFT_KEY = 'clinicontrol_receta_borrador';
 
 const RECETAS_PRINT_STYLES = `
 @media print {
@@ -209,15 +231,8 @@ export default function RecetasPage() {
   const [pacienteNombre, setPacienteNombre] = useState('');
   const [medicoNombre, setMedicoNombre] = useState('');
   const [instrucciones, setInstrucciones] = useState('');
-  const [medicamentos, setMedicamentos] = useState<Array<{
-    medicamentoId: string;
-    nombre: string;
-    dosis: string;
-    frecuencia: string;
-    duracion: string;
-    cantidad: number;
-    observaciones: string;
-  }>>([]);
+  const [medicamentos, setMedicamentos] = useState<RecetaFormMedicamento[]>([]);
+  const [borradorHora, setBorradorHora] = useState<string | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showPatientDropdown, setShowPatientDropdown] = useState(false);
@@ -225,6 +240,50 @@ export default function RecetasPage() {
   const [showAlergiaModal, setShowAlergiaModal] = useState(false);
   const [medicamentosDisponibles, setMedicamentosDisponibles] = useState<Medicamento[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  /* ── Autoguardado del borrador en localStorage (600ms de debounce) ── */
+  useEffect(() => {
+    if (!showModal || selectedReceta) return;
+    const t = setTimeout(() => {
+      const draft: RecetaBorrador = {
+        selectedPatientId,
+        pacienteNombre,
+        medicoNombre,
+        instrucciones,
+        medicamentos,
+        guardadoEn: new Date().toISOString(),
+      };
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        setBorradorHora(new Date().toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      } catch { /* almacenamiento no disponible */ }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [showModal, selectedReceta, selectedPatientId, pacienteNombre, medicoNombre, instrucciones, medicamentos]);
+
+  const abrirNuevaReceta = () => {
+    setSelectedReceta(null);
+    setFormErrors({});
+    let restored = false;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as RecetaBorrador;
+        if (d && Array.isArray(d.medicamentos)) {
+          setSelectedPatientId(d.selectedPatientId ?? null);
+          setPacienteNombre(d.pacienteNombre || '');
+          setMedicoNombre(d.medicoNombre || medicoNombre);
+          setInstrucciones(d.instrucciones || '');
+          setMedicamentos(d.medicamentos);
+          setSearchTerm(d.pacienteNombre || '');
+          try { setBorradorHora(new Date(d.guardadoEn).toLocaleTimeString('es-BO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })); } catch { /* fecha inválida */ }
+          restored = true;
+        }
+      }
+    } catch { /* borrador corrupto, se ignora */ }
+    if (!restored) { setMedicamentos([]); setPacienteNombre(''); setInstrucciones(''); setBorradorHora(null); }
+    setShowModal(true);
+  };
 
   /* ── Recetas filtradas ── */
   const filteredRecetas = recetas.filter(r => {
@@ -290,29 +349,12 @@ export default function RecetasPage() {
       const res = await recetaService.getAll();
       setRecetas(Array.isArray(res.data) ? res.data : []);
     } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } }; message?: string };
-      setError(err?.response?.data?.message || err?.message || 'Error al cargar recetas');
+      setError(errMsg(e, 'Error al cargar recetas'));
       setRecetas([]);
     } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    let cancelado = false;
-    (async () => {
-      try {
-        const res = await recetaService.getAll();
-        if (!cancelado) setRecetas(Array.isArray(res.data) ? res.data : []);
-      } catch {
-        if (!cancelado) { setError('Error al cargar recetas'); setRecetas([]); }
-      } finally {
-        if (!cancelado) setLoading(false);
-      }
-    })();
-    return () => { cancelado = true; };
-  }, []);
-
-  /* ── Dar de baja ── */
-  const handleDarDeBaja = (r: Receta) => {
+    const handleDarDeBaja = (r: Receta) => {
     setRecetaToBaja(r);
     setShowBajaModal(true);
   };
@@ -397,6 +439,8 @@ export default function RecetasPage() {
 
   const handleEmitir = async () => {
     toast('success', 'Receta emitida exitosamente', 'Puede imprimirla desde el listado');
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignorado */ }
+    setBorradorHora(null);
     setShowPreview(false);
     setShowModal(false);
     setMedicamentos([]);
@@ -420,6 +464,20 @@ export default function RecetasPage() {
       })),
     });
     setShowPreview(true);
+  };
+
+  const tieneBorrador = !selectedReceta && (borradorHora !== null || medicamentos.length > 0 || selectedPatientId !== null || instrucciones.trim().length > 0);
+
+  const descartarBorrador = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignorado */ }
+    setMedicamentos([]);
+    setPacienteNombre('');
+    setSelectedPatientId(null);
+    setSearchTerm('');
+    setInstrucciones('');
+    setBorradorHora(null);
+    setFormErrors({});
+    toast('info', 'Borrador descartado', 'La receta guardada en este dispositivo fue eliminada.');
   };
 
   const estadoBadge = (estado?: string) => {
@@ -474,11 +532,11 @@ export default function RecetasPage() {
     { key: 'estado', header: 'Estado', sortable: true, render: (r) => estadoBadge(r.estado) },
     { key: 'acciones', header: '', align: 'right', width: '80px', render: (r) => (
       <div className="flex justify-end gap-1">
-        <Button variant="ghost" size="sm" icon onClick={() => { abrirDetalle(r); }}>
+        <Button variant="ghost" size="sm" icon aria-label="Ver detalle de la receta" onClick={() => { abrirDetalle(r); }}>
           <Eye className="w-3.5 h-3.5" />
         </Button>
         {r.estado !== 'cancelada' && (
-          <Button variant="ghost" size="sm" icon onClick={() => handleDarDeBaja(r)} className="hover:text-[var(--danger-500)]">
+          <Button variant="ghost" size="sm" icon aria-label="Dar de baja la receta" onClick={() => handleDarDeBaja(r)} className="hover:text-[var(--danger-500)]">
             <X className="w-3.5 h-3.5" />
           </Button>
         )}
@@ -494,7 +552,7 @@ export default function RecetasPage() {
           gradient="from-purple-500 to-purple-600"
           title="Recetas"
           subtitle="Gestión de recetas médicas"
-          action={<Button variant="premium" onClick={() => { setShowModal(true); setMedicamentos([]); setPacienteNombre(''); setInstrucciones(''); setFormErrors({}); }}><Plus className="w-4 h-4" />Nueva Receta</Button>}
+          action={<Button variant="premium" onClick={abrirNuevaReceta}><Plus className="w-4 h-4" />Nueva Receta</Button>}
         />
       </div>
 
@@ -570,7 +628,15 @@ export default function RecetasPage() {
       </div>
 
       {/* ── Modal Nueva Receta / Detalle ── */}
-      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setSelectedReceta(null); }} title={selectedReceta ? 'Detalle de Receta' : 'Nueva Receta Médica'} size={selectedReceta ? 'lg' : '2xl'} accent="rose">
+      <Modal isOpen={showModal} onClose={() => {
+        const teniaDraft = !selectedReceta && (selectedPatientId !== null || medicamentos.length > 0 || instrucciones.trim().length > 0);
+        setShowModal(false);
+        setSelectedReceta(null);
+        if (teniaDraft) toast('info', 'Borrador conservado', 'Se guardó automáticamente; podrá recuperarlo al crear una nueva receta.');
+      }} title={selectedReceta ? 'Detalle de Receta' : 'Nueva Receta Médica'} size={selectedReceta ? 'lg' : '2xl'} accent="rose"
+        hasUnsavedChanges={!selectedReceta && (selectedPatientId !== null || medicamentos.length > 0 || instrucciones.trim().length > 0)}
+        unsavedTitle="Receta sin emitir"
+        unsavedMessage="Hay un borrador de receta sin emitir. ¿Desea salir? Se conservará como borrador para su próximo intento.">
         {selectedReceta ? (
           <div className="space-y-4">
             <RecetaPrintView receta={datosImpresion(selectedReceta)} />
@@ -603,7 +669,7 @@ export default function RecetasPage() {
                     <div>
                       <p className="text-sm font-medium text-[var(--text-primary)]">{pacienteNombre}</p>
                     </div>
-                    <button onClick={() => { setSelectedPatientId(null); setPacienteNombre(''); setSearchTerm(''); }} className="p-1 rounded-lg hover:bg-[var(--primary-100)] transition-colors">
+                    <button onClick={() => { setSelectedPatientId(null); setPacienteNombre(''); setSearchTerm(''); }} className="p-1 rounded-lg hover:bg-[var(--primary-100)] transition-colors" aria-label="Quitar paciente seleccionado">
                       <X className="w-4 h-4 text-[var(--primary-500)]" />
                     </button>
                   </div>
@@ -617,7 +683,7 @@ export default function RecetasPage() {
                         onChange={e => { setSearchTerm(e.target.value); setShowPatientDropdown(true); setSelectedPatientId(null); setPacienteNombre(''); setFormErrors(prev => ({ ...prev, pacienteNombre: '' })); }}
                         onFocus={() => setShowPatientDropdown(true)}
                         placeholder="Buscar paciente por nombre o cédula..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-primary)] border-2 border-[var(--border-primary)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus:focus-visible:outline-2 focus-visible:ring-2 focus-visible:ring-[var(--primary-400)] focus:border-[var(--primary-500)] focus:ring-4 focus:ring-[var(--primary-100)] transition-all"
+                        className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-primary)] border-2 border-[var(--border-primary)] rounded-xl text-sm text-[var(--text-primary)] placeholder:text-[var(--text-tertiary)] focus-visible:outline-2 focus-visible:ring-2 focus-visible:ring-[var(--primary-400)] focus:border-[var(--primary-500)] focus:ring-4 focus:ring-[var(--primary-100)] transition-all"
                       />
                     </div>
                     {showPatientDropdown && searchTerm.length > 0 && (
@@ -681,7 +747,7 @@ export default function RecetasPage() {
                     <div key={idx} className="animate-in-up p-4 bg-[var(--bg-secondary)] rounded-xl border border-[var(--border-primary)]" style={{ animationDelay: `${idx * 80}ms` }}>
                       <div className="flex items-start justify-between mb-3">
                         <span className="text-xs font-semibold text-[var(--text-tertiary)] uppercase">Medicamento #{idx + 1}</span>
-                        <Button variant="ghost" size="sm" icon onClick={() => removeMedicamento(idx)}>
+                        <Button variant="ghost" size="sm" icon onClick={() => removeMedicamento(idx)} aria-label={`Eliminar medicamento ${idx + 1}`}>
                           <X className="w-3.5 h-3.5 text-[var(--danger-500)]" />
                         </Button>
                       </div>
@@ -737,7 +803,21 @@ export default function RecetasPage() {
 
             <Textarea label="Instrucciones Generales" placeholder="Indicaciones adicionales para el paciente..." value={instrucciones} onChange={e => setInstrucciones(e.target.value)} rows={2} />
 
-            <div className="flex justify-end gap-3 pt-2 border-t border-[var(--border-primary)]">
+            <div className="flex justify-end gap-3 pt-2 border-t border-[var(--border-primary)] items-center">
+              {borradorHora ? (
+                <p className="flex items-center gap-1.5 text-xs font-medium text-[var(--success-600)] mr-auto">
+                  <Check className="w-3.5 h-3.5" />Borrador guardado · {borradorHora}
+                </p>
+              ) : (
+                <p className="text-xs text-[var(--text-tertiary)] mr-auto flex items-center gap-1.5">
+                  <Save className="w-3.5 h-3.5" />Se guardará automáticamente mientras escribe
+                </p>
+              )}
+              {tieneBorrador && (
+                <Button variant="ghost" onClick={descartarBorrador} className="text-[var(--danger-600)] hover:text-[var(--danger-700)]">
+                  <Trash2 className="w-4 h-4" />Descartar borrador
+                </Button>
+              )}
               <Button variant="secondary" onClick={() => setShowModal(false)}>Cancelar</Button>
               <Button variant="premium" onClick={handlePreview}>
                 <Eye className="w-4 h-4" />Vista Previa

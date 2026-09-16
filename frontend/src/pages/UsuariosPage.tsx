@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Users, Shield, UserCog, Stethoscope, HeartPulse, UserRound, Plus, Pencil, Trash2 } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
-import { Button, Modal, Input, Select } from '../components/ui';
+import { Button, Modal, Input, Select, ConfirmDialog, toast } from '../components/ui';
 import { usuarioService, rolService } from '../api/services';
 import type { Usuario, Rol } from '../types';
-import Swal from 'sweetalert2';
 
 const ROLE_ICONS: Record<string, any> = {
   ADMIN: Shield,
@@ -58,6 +57,8 @@ export default function UsuariosPage() {
   const [formData, setFormData] = useState({ nombre: '', apellido: '', email: '', password: '', ci: '', rolId: 1 });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<Usuario | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const loadData = () => {
     setLoading(true);
@@ -67,7 +68,7 @@ export default function UsuariosPage() {
     ]).then(([usersRes, rolesRes]) => {
       setUsuarios(usersRes.data || []);
       setRoles(rolesRes.data || []);
-    }).catch(() => { Swal.fire({ icon: 'error', title: 'Error al cargar datos' }); }).finally(() => setLoading(false));
+    }).catch(() => { toast('error', 'Error al cargar datos', 'No se pudieron cargar usuarios o roles.'); }).finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -125,34 +126,32 @@ export default function UsuariosPage() {
 
       if (editingUser) {
         await usuarioService.update(editingUser.id!, payload);
-        Swal.fire({ icon: 'success', title: 'Actualizado', timer: 1500, showConfirmButton: false });
+        toast('success', 'Actualizado', 'El usuario fue actualizado correctamente.');
       } else {
         await usuarioService.create(payload);
-        Swal.fire({ icon: 'success', title: 'Creado', timer: 1500, showConfirmButton: false });
+        toast('success', 'Creado', 'El usuario fue creado correctamente.');
       }
       setModalOpen(false);
       loadData();
     } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.message || 'Error al guardar' });
+      toast('error', 'Error', err?.response?.data?.message || 'Error al guardar');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (user: Usuario) => {
-    const result = await Swal.fire({
-      icon: 'question', title: '¿Eliminar usuario?',
-      text: `${user.nombre} ${user.apellido || ''} (${user.email})`,
-      showCancelButton: true, confirmButtonText: 'Eliminar', cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#dc2626',
-    });
-    if (!result.isConfirmed) return;
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+    setDeleteLoading(true);
     try {
-      await usuarioService.delete(user.id!);
-      Swal.fire({ icon: 'success', title: 'Eliminado', timer: 1500, showConfirmButton: false });
+      await usuarioService.delete(userToDelete.id!);
+      toast('success', 'Eliminado', 'El usuario fue eliminado.');
+      setUserToDelete(null);
       loadData();
     } catch {
-      Swal.fire({ icon: 'error', title: 'Error al eliminar' });
+      toast('error', 'Error al eliminar', 'No se pudo eliminar el usuario.');
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -248,7 +247,7 @@ export default function UsuariosPage() {
                           <button onClick={() => openEdit(user)} className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--primary-600)] hover:bg-[var(--primary-50)] transition-all opacity-0 group-hover:opacity-100">
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => handleDelete(user)} className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--danger-600)] hover:bg-[var(--danger-50)] transition-all opacity-0 group-hover:opacity-100">
+                          <button onClick={() => setUserToDelete(user)} className="p-1.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--danger-600)] hover:bg-[var(--danger-50)] transition-all opacity-0 group-hover:opacity-100">
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -297,6 +296,18 @@ export default function UsuariosPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title="¿Eliminar usuario?"
+        message={userToDelete ? `${userToDelete.nombre} ${userToDelete.apellido || ''} (${userToDelete.email})` : ''}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={deleteLoading}
+      />
     </div>
   );
 }

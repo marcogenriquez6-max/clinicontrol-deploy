@@ -37,7 +37,7 @@ import { AuditModule } from './modules/audit/infrastructure/audit.module';
 import { HistoricoTratamientoModule } from './modules/historico-tratamiento/infrastructure/historico-tratamiento.module';
 import { VacunaModule } from './modules/vacuna/infrastructure/vacuna.module';
 import { AlergiaModule } from './modules/alergia/infrastructure/alergia.module';
-import { SucursalModule } from './modules/sucursal/infrastructure/sucursal.module';
+
 import { AgendaModule } from './modules/agenda/infrastructure/agenda.module';
 import { TipoAtencionModule } from './modules/tipo-atencion/infrastructure/tipo-atencion.module';
 import { TurnoModule } from './modules/turno/infrastructure/turno.module';
@@ -49,8 +49,8 @@ import { AppService } from './app.service';
 import appConfig from './config/app.config';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
-import { TenantInterceptor } from './common/interceptors/tenant.interceptor';
 
+import { SecurityMiddleware } from "./common/middleware/security.middleware";
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -117,7 +117,6 @@ import { TenantInterceptor } from './common/interceptors/tenant.interceptor';
     CirugiaPreviaModule,
     VacunaModule,
     AlergiaModule,
-    SucursalModule,
     AgendaModule,
     HistoricoTratamientoModule,
     TurnoModule,
@@ -134,12 +133,11 @@ import { TenantInterceptor } from './common/interceptors/tenant.interceptor';
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
-    { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },
-    { provide: APP_INTERCEPTOR, useClass: TransformInterceptor },
-    { provide: APP_INTERCEPTOR, useClass: TimeoutInterceptor },
     OwnershipGuard,
   ],
 })
 export class AppModule implements NestModule {
-  configure(_consumer: MiddlewareConsumer) {}
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(SecurityMiddleware).forRoutes("*");
+  }
 }

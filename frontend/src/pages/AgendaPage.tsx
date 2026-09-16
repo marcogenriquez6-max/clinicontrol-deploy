@@ -260,7 +260,7 @@ export default function AgendaPage() {
                       <p className="text-xs text-[var(--text-tertiary)]">{new Date(b.fechaInicio).toLocaleDateString()} - {new Date(b.fechaFin).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" icon onClick={() => setDeleteTarget(b)}>
+                  <Button variant="ghost" size="sm" icon aria-label="Eliminar período de descanso" onClick={() => setDeleteTarget(b)}>
                     <Trash2 className="w-4 h-4 text-[var(--danger-500)]" />
                   </Button>
                 </div>

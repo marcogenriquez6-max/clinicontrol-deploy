@@ -196,7 +196,7 @@ export default function PagosPage() {
               <div className="flex justify-between"><span className="text-[var(--text-tertiary)]">Fecha</span><span className="font-medium">{fmtFecha(new Date())}</span></div>
             </div>
             <Input label="Concepto" value={concepto} onChange={(e) => setConcepto(e.target.value)} placeholder="Consulta General" />
-            <Input label="Monto (Bs)" type="number" step="0.01" value={monto} onChange={(e) => setMonto(e.target.value)} />
+            <Input label="Monto (Bs)" type="number" step="0.01" min="0" value={monto} onChange={(e) => setMonto(e.target.value)} />
             <p className="text-xs text-[var(--text-tertiary)]">Forma de pago: <strong>Efectivo</strong>. Al confirmar, el turno queda habilitado para la atención médica y se emite el recibo.</p>
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="secondary" onClick={() => setObjetivo(null)}>Cancelar</Button>
@@ -223,7 +223,7 @@ export default function PagosPage() {
             )}
           </div>
           <Input label="Concepto" placeholder="Ej. Certificado médico" value={mConcepto} onChange={(e) => setMConcepto(e.target.value)} />
-          <Input label="Monto (Bs)" type="number" step="0.01" value={mMonto} onChange={(e) => setMMonto(e.target.value)} />
+          <Input label="Monto (Bs)" type="number" step="0.01" min="0" value={mMonto} onChange={(e) => setMMonto(e.target.value)} />
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="secondary" onClick={() => setManualOpen(false)}>Cancelar</Button>
             <Button variant="success" loading={guardando} onClick={registrarManual}><Banknote className="w-4 h-4" />Registrar pago</Button>

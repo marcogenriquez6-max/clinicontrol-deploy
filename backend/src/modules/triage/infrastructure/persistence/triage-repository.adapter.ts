@@ -115,7 +115,7 @@ export class TriageRepositoryAdapter implements TriageRepositoryPort {
   async findById(id: number): Promise<TriageDomain | null> {
     const orm = await this.repo.findOne({
       where: { id },
-      relations: ['paciente', 'realizadoPor', 'atendidoPor'],
+      relations: ['paciente', 'realizadoPor'],
     });
     return orm ? this.toDomain(orm) : null;
   }

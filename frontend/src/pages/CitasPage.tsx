@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Plus, Pencil, XCircle, Calendar, UserRound, Stethoscope, CalendarDays, Clock, ChevronDown, CheckCircle2, AlertTriangle, Eye, Layers, Syringe, ListOrdered, RefreshCcw, type LucideIcon } from 'lucide-react';
+import { Plus, Pencil, XCircle, Calendar, UserRound, Stethoscope, CalendarDays, Clock, ChevronDown, CheckCircle2, AlertTriangle, Eye, Layers, Syringe, ListOrdered, RefreshCcw, UserCheck, Check, type LucideIcon } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import { Button, Modal, Input, StatusBadge, citaEstadoToStatus, Card } from '../components/ui';
 import DataTable from '../components/ui/DataTable';
@@ -123,7 +123,16 @@ export default function CitasPage() {
   const onSubmit = async () => {
     // Validaciones
     if (!selPaciente || !selTipoAtencion || !selEspecialidad || !selServicio || !selMedico || !selFecha || !selHora) {
-      toast('error', 'Complete todos los campos del flujo', 'Paciente → Tipo → Especialidad → Servicio → Médico → Fecha → Hora');
+      const faltantes = [
+        !selPaciente && 'Paciente',
+        !selTipoAtencion && 'Tipo de atención',
+        !selEspecialidad && 'Especialidad',
+        !selServicio && 'Servicio',
+        !selMedico && 'Médico',
+        !selFecha && 'Fecha',
+        !selHora && 'Hora',
+      ].filter(Boolean) as string[];
+      toast('error', 'Faltan datos para agendar la cita', `Complete el/los paso(s): ${faltantes.join(', ')}`);
       return;
     }
     setFormLoading(true);
@@ -247,7 +256,7 @@ export default function CitasPage() {
         <button onClick={() => handleOpenModal(c)} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]" title="Editar"><Pencil className="w-3.5 h-3.5" /></button>
         <button onClick={() => openCancelModal(c)} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--danger-500)] hover:bg-[var(--danger-50)]" title="Cancelar"><XCircle className="w-3.5 h-3.5" /></button>
         {c.estado?.nombre === 'pendiente' || c.estado?.nombre === 'confirmada' ? (
-          <button onClick={() => registrarLlegada(c)} className="p-1.5 rounded-md text-[var(--primary-600)] hover:text-[var(--primary-700)] hover:bg-[var(--primary-50)]" title="Registrar llegada"><AlertTriangle className="w-3.5 h-3.5" /></button>
+          <button onClick={() => registrarLlegada(c)} className="p-1.5 rounded-md text-[var(--success-600)] hover:text-[var(--success-700)] hover:bg-[var(--success-50)]" title="Registrar llegada"><UserCheck className="w-3.5 h-3.5" /></button>
         ) : null}
         {c.estado?.nombre === 'pendiente' || c.estado?.nombre === 'confirmada' ? (
           <button onClick={() => abrirReprogramar(c)} className="p-1.5 rounded-md text-[var(--text-tertiary)] hover:text-[var(--accent-500)] hover:bg-[var(--accent-50)]" title="Reprogramar"><RefreshCcw className="w-3.5 h-3.5" /></button>
@@ -295,14 +304,24 @@ export default function CitasPage() {
       {/* Modal Nueva/Editar Cita con flujo en cascada */}
       <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); resetForm(); }}
         title={editingCita ? 'Editar Cita' : 'Nueva Cita'} size="xl" accent="primary">
-        {/* Barra de pasos */}
+        {/* Barra de pasos (stepper) */}
         <div className="flex flex-wrap items-center gap-2 mb-6 px-1">
           {flowSteps.map((s, i) => {
             const done = Boolean(s.value);
             return (
               <div key={s.label} className="flex items-center gap-1.5">
-                <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg ${done ? 'bg-[var(--success-50)] text-[var(--success-700)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'}`}>
-                  <s.icon className="w-3.5 h-3.5" />
+                <div
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-all ${
+                    done
+                      ? 'bg-[var(--success-50)] text-[var(--success-700)]'
+                      : 'bg-[var(--bg-tertiary)] text-[var(--text-tertiary)]'
+                  }`}
+                >
+                  {done ? (
+                    <Check className="w-3.5 h-3.5" />
+                  ) : (
+                    <span className="w-3.5 h-3.5 rounded-full bg-[var(--border-primary)] text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                  )}
                   <span className="text-[11px] font-semibold">{s.label}</span>
                 </div>
                 {i < flowSteps.length - 1 && <ChevronDown className="w-3 h-3 -rotate-90 text-[var(--text-tertiary)] hidden md:block" />}
@@ -500,7 +519,7 @@ export default function CitasPage() {
       </Modal>
 
       {/* Modal Cancelar */}
-      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Cancelar Cita" size="sm">
+      <Modal isOpen={isCancelModalOpen} onClose={() => setIsCancelModalOpen(false)} title="Cancelar Cita" size="sm" hasUnsavedChanges={cancelMotivo.trim().length > 0} unsavedTitle="Motivo escrito" unsavedMessage="Escribió un motivo de cancelación que no se guardará. ¿Salir de todos modos?">
         {cancelTarget && (
           <div className="space-y-5">
             <div className="p-4 bg-[var(--danger-50)] rounded-lg border border-[var(--danger-100)] space-y-2">

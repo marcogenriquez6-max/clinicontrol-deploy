@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { DatabaseBackup, Download, Trash2, Plus, RefreshCw } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
-import { Button, Card, ConfirmDialog } from '../components/ui';
+import { Button, Card, ConfirmDialog, DataTable, type Column } from '../components/ui';
 import { toast } from '../components/ui/Toast';
 import { errMsg } from '../api/errMsg';
 import { respaldoService, type RespaldoInfo } from '../api/configuracion.service';
@@ -9,6 +9,12 @@ import { lista } from '../utils/api.utils';
 import { fmtFecha } from '../utils/impresion';
 
 const tam = (b: number) => (b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+
+const columnas: Column<RespaldoInfo>[] = [
+  { key: 'nombre', header: 'Archivo', width: '45%' },
+  { key: 'creadoEn', header: 'Fecha', render: (r) => <span className="tabular-nums">{fmtFecha(r.creadoEn, true)}</span> },
+  { key: 'tamanoBytes', header: 'Tamaño', align: 'right', render: (r) => <span className="tabular-nums">{tam(r.tamanoBytes)}</span> },
+];
 
 /** Administración → Respaldos: copias de seguridad de la base de datos (pg_dump). */
 export default function RespaldosPage() {
@@ -58,23 +64,27 @@ export default function RespaldosPage() {
         stats={[{ label: 'respaldos', value: items.length }]}
         action={<div className="flex gap-2"><Button variant="secondary" onClick={load} loading={loading}><RefreshCw className="w-4 h-4" /></Button><Button onClick={crear} loading={creando}><Plus className="w-4 h-4" />Generar respaldo ahora</Button></div>} />
       <Card className="!p-0 overflow-hidden">
-        <table className="table-premium w-full text-sm">
-          <thead><tr><th>Archivo</th><th>Fecha</th><th className="text-right">Tamaño</th><th className="text-right">Acciones</th></tr></thead>
-          <tbody>
-            {items.length === 0 && <tr><td colSpan={4} className="text-center py-10 text-[var(--text-tertiary)]">{loading ? 'Cargando…' : 'Aún no hay respaldos. Genere el primero con el botón superior.'}</td></tr>}
-            {items.map((r) => (
-              <tr key={r.nombre}>
-                <td className="font-mono text-xs">{r.nombre}</td>
-                <td className="tabular-nums">{fmtFecha(r.creadoEn, true)}</td>
-                <td className="text-right tabular-nums">{tam(r.tamanoBytes)}</td>
-                <td className="text-right"><div className="inline-flex gap-1">
-                  <Button size="sm" variant="secondary" onClick={() => descargar(r)}><Download className="w-4 h-4" />Descargar</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setABorrar(r)} className="hover:text-[var(--danger-600)]"><Trash2 className="w-4 h-4" /></Button>
-                </div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <DataTable
+          title="Respaldos generados"
+          subtitle={`${items.length} respaldo(s)`}
+          columns={[...columnas, {
+            key: 'acciones', header: 'Acciones', align: 'right', hideable: false,
+            render: (r) => (
+              <div className="inline-flex gap-1 justify-end">
+                <Button size="sm" variant="secondary" onClick={() => descargar(r)}><Download className="w-4 h-4" />Descargar</Button>
+                <Button size="sm" variant="ghost" onClick={() => setABorrar(r)} className="hover:text-[var(--danger-600)]"><Trash2 className="w-4 h-4" /></Button>
+              </div>
+            ),
+          }]}
+          data={items}
+          keyExtractor={(r) => r.nombre}
+          loading={loading}
+          pageSize={10}
+          searchable
+          searchPlaceholder="Buscar respaldo..."
+          searchKeys={['nombre']}
+          emptyMessage={loading ? 'Cargando…' : 'Aún no hay respaldos. Genere el primero con el botón superior.'}
+        />
       </Card>
       <Card title="Recomendación">
         <p className="text-sm text-[var(--text-secondary)]">Genere un respaldo al cierre de cada jornada y guarde una copia fuera del equipo servidor. Cada respaldo y eliminación quedan registrados en Auditoría.</p>

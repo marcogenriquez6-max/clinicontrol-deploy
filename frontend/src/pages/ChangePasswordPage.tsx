@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Key, Shield } from 'lucide-react';
-import { PageHeader, Card, Input, Button } from '../components/ui';
+import { PageHeader, Card, Input, Button, toast } from '../components/ui';
 import api from '../api/axios';
-import Swal from 'sweetalert2';
 
 export default function ChangePasswordPage() {
   const [currentPassword, setCurrentPassword] = useState('');
@@ -12,26 +11,26 @@ export default function ChangePasswordPage() {
 
   const handleSubmit = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Swal.fire({ icon: 'warning', title: 'Campos requeridos', text: 'Completa todos los campos' });
+      toast('warning', 'Campos requeridos', 'Complete todos los campos');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Swal.fire({ icon: 'warning', title: 'No coinciden', text: 'La nueva contraseña y la confirmación no son iguales' });
+      toast('warning', 'No coinciden', 'La nueva contraseña y la confirmación no son iguales');
       return;
     }
-    if (newPassword.length < 6) {
-      Swal.fire({ icon: 'warning', title: 'Muy corta', text: 'Mínimo 6 caracteres' });
+    if (newPassword.length < 8) {
+      toast('warning', 'Contraseña muy corta', 'Mínimo 8 caracteres');
       return;
     }
     setLoading(true);
     try {
       await api.post('/auth/change-password', { currentPassword, newPassword });
-      Swal.fire({ icon: 'success', title: 'Contraseña actualizada', timer: 2000, showConfirmButton: false });
+      toast('success', 'Contraseña actualizada', 'Su contraseña de acceso fue actualizada.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err: any) {
-      Swal.fire({ icon: 'error', title: 'Error', text: err?.response?.data?.message || 'No se pudo cambiar la contraseña' });
+      toast('error', 'Error', err?.response?.data?.message || 'No se pudo cambiar la contraseña');
     } finally {
       setLoading(false);
     }
@@ -53,21 +52,21 @@ export default function ChangePasswordPage() {
             type="password"
             value={currentPassword}
             onChange={e => setCurrentPassword(e.target.value)}
-            placeholder="Ingresa tu contraseña actual"
+            placeholder="Ingrese su contraseña actual"
           />
           <Input
             label="Nueva contraseña"
             type="password"
             value={newPassword}
             onChange={e => setNewPassword(e.target.value)}
-            placeholder="Mínimo 6 caracteres"
+            placeholder="Mínimo 8 caracteres"
           />
           <Input
             label="Confirmar nueva contraseña"
             type="password"
             value={confirmPassword}
             onChange={e => setConfirmPassword(e.target.value)}
-            placeholder="Repite la nueva contraseña"
+            placeholder="Repita la nueva contraseña"
           />
           <div className="flex justify-end pt-4 border-t border-[var(--border-primary)]">
             <Button onClick={handleSubmit} loading={loading}>

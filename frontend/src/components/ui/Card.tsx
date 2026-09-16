@@ -11,30 +11,43 @@ interface CardProps {
   accent?: 'primary' | 'success' | 'danger' | 'warning' | 'accent' | 'fuchsia' | 'rose';
 }
 
-const accentStyles: Record<string, string> = {
-  primary: 'border-l-3 border-l-[var(--primary-600)]',
-  success: 'border-l-3 border-l-[var(--success-500)]',
-  danger: 'border-l-3 border-l-[var(--danger-500)]',
-  warning: 'border-l-3 border-l-[var(--warning-500)]',
-  accent: 'border-l-3 border-l-[var(--info-500)]',
-};
+export default function Card({
+  children,
+  className,
+  title,
+  subtitle,
+  action,
+  padding = true,
+  hover = false,
+  accent,
+}: CardProps) {
+  // Determinar clases CSS base
+  let baseClass = 'bg-[var(--bg-card)] rounded-lg border border-[var(--border-primary)] shadow-sm';
+  let hoverClass = 'hover:border-[var(--primary-300)] hover:shadow-md transition-all duration-200';
+  let accentClass = '';
 
-export default function Card({ children, className = '', title, subtitle, action, padding = true, hover = false, accent }: Omit<CardProps, 'glow'>) {
+  if (accent === 'primary') accentClass = 'border-l-3 border-l-[var(--primary-600)]';
+  else if (accent === 'success') accentClass = 'border-l-3 border-l-[var(--success-500)]';
+  else if (accent === 'danger') accentClass = 'border-l-3 border-l-[var(--danger-500)]';
+  else if (accent === 'warning') accentClass = 'border-l-3 border-l-[var(--warning-500)]';
+  else if (accent === 'accent') accentClass = 'border-l-3 border-l-[var(--info-500)]';
+  else if (accent === 'fuchsia') accentClass = 'border-l-3 border-l-[var(--fuchsia-500)]';
+  else if (accent === 'rose') accentClass = 'border-l-3 border-l-[var(--rose-500)]';
+
+  const fullClassName = baseClass + (hover ? hoverClass : '') + (accentClass ? ' ' + accentClass : '') + (className ? ' ' + className : '');
+
   return (
     <div
-      className={`
-        bg-[var(--bg-card)] rounded-xl border border-[var(--border-primary)] shadow-sm
-        ${hover ? 'hover:border-[var(--primary-300)] hover:shadow-md transition-all duration-200' : ''}
-        ${accent ? accentStyles[accent] || '' : ''}
-        ${className}
-      `}
+      className={fullClassName}
+      role="region"
+      aria-label={title ? title.toString() : 'Tarjeta de contenido'}
     >
       {(title || action) && (
         <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-secondary)]">
           <div className="min-w-0 flex-1">
             {title && (
               <h3 className="text-sm font-semibold text-[var(--text-primary)] flex items-center gap-2">
-                {title}
+                <span className="sr-only">Título de la tarjeta: </span>{title}
               </h3>
             )}
             {subtitle && <p className="text-sm text-[var(--text-secondary)] mt-0.5 truncate">{subtitle}</p>}

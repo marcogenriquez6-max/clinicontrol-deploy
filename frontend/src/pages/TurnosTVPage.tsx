@@ -19,6 +19,7 @@ interface TVConfig {
 
 export default function TurnosTVPage() {
   const [turnos, setTurnos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [connected, setConnected] = useState(true);
@@ -40,6 +41,8 @@ export default function TurnosTVPage() {
         setConnected(true);
       } catch {
         setConnected(false);
+      } finally {
+        setLoading(false);
       }
     };
     fetchTV();
@@ -244,7 +247,7 @@ export default function TurnosTVPage() {
               {turnosEnEspera.length === 0 && (
                 <div className="flex flex-col items-center gap-4 py-12 text-[var(--text-tertiary)]">
                   <Users className={`${fullscreen ? 'w-16 h-16' : 'w-10 h-10'} text-[var(--text-tertiary)]`} />
-                  <p className={`${fullscreen ? 'text-xl' : 'text-sm'}`}>No hay turnos en espera</p>
+                  <p className={`${fullscreen ? 'text-xl' : 'text-sm'}`}>{loading ? 'Cargando turnos…' : 'No hay turnos en espera'}</p>
                 </div>
               )}
             </div>

@@ -13,10 +13,10 @@ import { Medico } from './medico.entity';
 import { EstadoCita } from './estado-cita.entity';
 import { Usuario } from './usuario.entity';
 import { Consulta } from './consulta.entity';
-import { Sucursal } from './sucursal.entity';
 import { Especialidad } from './especialidad.entity';
 import { Servicio } from './servicio.entity';
 import { TipoAtencion } from './tipo-atencion.entity';
+import { Sucursal } from './sucursal.entity';
 
 @Entity('cita')
 export class Cita {

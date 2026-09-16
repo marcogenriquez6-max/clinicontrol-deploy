@@ -88,6 +88,7 @@ const P = ({ roles, children }: { roles: string[]; children: React.ReactNode }) 
 
 const RECEPCION_Y_MEDICO = [...RECEPCION, ...MEDICO];
 const CLINICO = [...MEDICO, ...ENFERMERIA];
+const TURNOS_LECTURA = [...RECEPCION, ...MEDICO, ...ENFERMERIA, ...GERENCIA];
 
 export default function AppRoutes() {
   const initialize = useAuthStore((s) => s.initialize);
@@ -148,8 +149,8 @@ export default function AppRoutes() {
           <Route path="/medicos" element={<P roles={ADMIN}><MedicosPage /></P>} />
 
           {/* ── Pantallas kiosk sin Layout (sala de espera / TV) ── */}
-          <Route path="/sala-espera" element={<RoleRoute roles={TODOS}><TurnosSalaPage /></RoleRoute>} />
-          <Route path="/pantalla-turnos" element={<RoleRoute roles={TODOS}><TurnosTVPage /></RoleRoute>} />
+          <Route path="/sala-espera" element={<RoleRoute roles={TURNOS_LECTURA}><TurnosSalaPage /></RoleRoute>} />
+          <Route path="/pantalla-turnos" element={<RoleRoute roles={TURNOS_LECTURA}><TurnosTVPage /></RoleRoute>} />
 
           {/* ── Mi cuenta ── */}
           <Route path="/perfil" element={<P roles={TODOS}><ProfilePage /></P>} />

@@ -32,8 +32,13 @@ export default function ConfirmDialog({
   const [mounted, setMounted] = useState(false);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !loading) onClose();
-  }, [onClose, loading]);
+    if (loading) return;
+    if (e.key === 'Escape') onClose();
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      void onConfirm();
+    }
+  }, [onClose, onConfirm, loading]);
 
   useEffect(() => {
     if (isOpen) {

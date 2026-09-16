@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { CheckCircle, XCircle, AlertTriangle, Info, X, Copy, Check } from 'lucide-react';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -45,15 +45,28 @@ export default function ToastContainer() {
 function ToastItem({ toast: t, onRemove }: { toast: ToastMessage; onRemove: (id: string) => void }) {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     requestAnimationFrame(() => setIsVisible(true));
     const leaveTimer = setTimeout(() => {
       setIsLeaving(true);
       setTimeout(() => onRemove(t.id), 300);
-    }, 4000);
+    }, t.type === 'error' ? 8000 : 4000);
     return () => clearTimeout(leaveTimer);
+  }, [t.id, onRemove, t.type]);
+
+  const close = useCallback(() => {
+    setIsLeaving(true);
+    setTimeout(() => onRemove(t.id), 300);
   }, [t.id, onRemove]);
+
+  const copy = useCallback(() => {
+    const text = `${t.title}${t.message ? ' — ' + t.message : ''}`;
+    void navigator.clipboard?.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }, [t.title, t.message]);
 
   const config = {
     success: { icon: CheckCircle, border: 'border-[var(--success-200)]', bg: 'bg-[var(--success-50)]', titleColor: 'text-emerald-800', iconColor: 'text-[var(--success-500)]' },
@@ -78,9 +91,14 @@ function ToastItem({ toast: t, onRemove }: { toast: ToastMessage; onRemove: (id:
       </div>
       <div className="min-w-0 flex-1">
         <p className={`text-sm font-semibold ${c.titleColor}`}>{t.title}</p>
-        {t.message && <p className="text-xs text-[var(--text-tertiary)] mt-0.5">{t.message}</p>}
+        {t.message && <p className="text-xs text-[var(--text-tertiary)] mt-0.5 break-words">{t.message}</p>}
       </div>
-      <button onClick={() => { setIsLeaving(true); setTimeout(() => onRemove(t.id), 300); }} className="flex-shrink-0 p-0.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all">
+      {t.type === 'error' && (
+        <button onClick={copy} title="Copiar mensaje" aria-label="Copiar mensaje de error" className="flex-shrink-0 p-1 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all">
+          {copied ? <Check className="w-4 h-4 text-[var(--success-500)]" /> : <Copy className="w-4 h-4" />}
+        </button>
+      )}
+      <button onClick={close} className="flex-shrink-0 p-0.5 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all">
         <X className="w-4 h-4" />
       </button>
     </div>

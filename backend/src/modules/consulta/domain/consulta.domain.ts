@@ -6,6 +6,25 @@ export interface DiagnosticoEntry {
   descripcion: string;
   tipo: 'principal' | 'secundario' | 'complicacion' | 'cronico';
   esCronico: boolean;
+  cie10?: { id?: number; codigo?: string; descripcion?: string };
+}
+
+export interface RecetaEntry {
+  id?: number;
+  estado?: string;
+  instrucciones?: string;
+  createdAt?: Date;
+  items: Array<{
+    id?: number;
+    medicamentoId: number;
+    medicamentoNombre?: string;
+    dosis?: string;
+    frecuencia?: string;
+    duracion?: string;
+    observaciones?: string;
+    cantidad?: number;
+    cantidadDispensada?: number;
+  }>;
 }
 
 export interface SignosVitales {
@@ -27,6 +46,14 @@ export class ConsultaDomain extends BaseEntity {
   fecha: Date;
   tipoConsulta: string;
 
+  medico?: {
+    id?: number;
+    nombre?: string;
+    apellido?: string;
+    especialidad?: string;
+    especialidadId?: number;
+  };
+
   motivo: string;
   sintomas: string;
   enfermedadActual?: string;
@@ -39,6 +66,7 @@ export class ConsultaDomain extends BaseEntity {
   indicaciones?: string;
 
   diagnosticos: DiagnosticoEntry[];
+  recetas: RecetaEntry[];
   esContinuacion: boolean;
   consultaOriginalId?: number;
   motivoContinuacion?: string;
@@ -63,6 +91,7 @@ export class ConsultaDomain extends BaseEntity {
     this.tipoConsulta = props.tipoConsulta || 'consulta_general';
     this.signosVitales = {};
     this.diagnosticos = [];
+    this.recetas = [];
     this.esContinuacion = false;
   }
 
@@ -72,6 +101,10 @@ export class ConsultaDomain extends BaseEntity {
 
   agregarDiagnostico(diagnostico: DiagnosticoEntry): void {
     this.diagnosticos.push(diagnostico);
+  }
+
+  agregarReceta(receta: RecetaEntry): void {
+    this.recetas.push(receta);
   }
 
   agregarEvaluacion(

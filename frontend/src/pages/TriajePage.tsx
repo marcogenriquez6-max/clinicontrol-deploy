@@ -25,6 +25,7 @@ function useNow(intervalMs = 30000) {
 export default function TriajePage() {
   const { pacientes, fetchPacientes } = useStore();
   const [triages, setTriages] = useState<Triage[]>([]);
+  const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
   const [soloActivos, setSoloActivos] = useState(true);
   const now = useNow();
@@ -34,6 +35,7 @@ export default function TriajePage() {
       const res = await triageService.getAll({ limit: 200 });
       setTriages(lista<Triage>(res));
     } catch (e) { toast('error', 'Error', errMsg(e, 'No se pudieron cargar los triajes')); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => {
@@ -101,7 +103,23 @@ export default function TriajePage() {
         <button onClick={() => setSoloActivos(false)} className={`px-3 py-1.5 rounded-lg text-xs font-medium ${!soloActivos ? 'bg-[var(--primary-50)] text-[var(--primary-700)]' : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)]'}`}>Todos</button>
       </div>
 
-      {visibles.length === 0 ? (
+      {loading && triages.length === 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <div className="animate-pulse space-y-3">
+                <div className="h-5 shimmer rounded w-2/3" />
+                <div className="h-4 shimmer rounded w-1/2" />
+                <div className="h-4 shimmer rounded w-full" />
+                <div className="flex gap-2 pt-2">
+                  <div className="h-8 shimmer rounded-lg w-24" />
+                  <div className="h-8 shimmer rounded-lg w-24" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : visibles.length === 0 ? (
         <Card><p className="text-sm text-center py-8" style={{ color: 'var(--text-tertiary)' }}>No hay triajes {soloActivos ? 'pendientes' : 'registrados'}</p></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

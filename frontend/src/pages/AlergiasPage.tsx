@@ -93,8 +93,8 @@ const ALERGIA_VALIDACIONES = {
     { key: 'tipoAlergia', header: 'Tipo', render: (a) => (<span className="text-[var(--text-secondary)]">{a.tipoAlergia?.nombre || '-'}</span>) },
     { key: 'acciones', header: 'Acciones', align: 'right', render: (a) => (
       <div className="flex justify-end gap-1">
-        <Button variant="ghost" size="sm" icon onClick={() => handleOpenCatalogModal(a)}><Pencil className="w-3.5 h-3.5" /></Button>
-        <Button variant="ghost" size="sm" icon onClick={() => setConfirmDelete({ type: 'catalog', id: a.id!, name: a.nombre })}>
+        <Button variant="ghost" size="sm" icon aria-label="Editar alergia" onClick={() => handleOpenCatalogModal(a)}><Pencil className="w-3.5 h-3.5" /></Button>
+        <Button variant="ghost" size="sm" icon aria-label={`Eliminar ${a.nombre}`} onClick={() => setConfirmDelete({ type: 'catalog', id: a.id!, name: a.nombre })}>
           <Trash2 className="w-3.5 h-3.5 text-[var(--danger-500)]" />
         </Button>
       </div>
@@ -106,7 +106,7 @@ const ALERGIA_VALIDACIONES = {
     { key: 'severidad', header: 'Severidad', render: (pa) => (<StatusBadge variant={severityToStatus(pa.severidad)} dot>{pa.severidad}</StatusBadge>) },
     { key: 'descripcion', header: 'Descripción', render: (pa) => (<span className="text-[var(--text-secondary)]">{pa.descripcion || '-'}</span>) },
     { key: 'acciones', header: 'Acciones', align: 'right', render: (pa) => (
-      <Button variant="ghost" size="sm" icon onClick={() => setConfirmDelete({ type: 'patient', id: pa.id, name: pa.nombre })}>
+      <Button variant="ghost" size="sm" icon aria-label={`Eliminar alergia ${pa.nombre}`} onClick={() => setConfirmDelete({ type: 'patient', id: pa.id, name: pa.nombre })}>
         <Trash2 className="w-3.5 h-3.5 text-[var(--danger-500)]" />
       </Button>
     )},

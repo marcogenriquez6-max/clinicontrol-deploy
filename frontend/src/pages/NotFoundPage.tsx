@@ -13,7 +13,7 @@ export default function NotFoundPage() {
         <div>
           <h1 className="text-2xl font-semibold" style={{ color: 'var(--text-primary)' }}>Página no encontrada</h1>
           <p className="mt-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-            La página que buscas no existe o fue movida.
+            La página que busca no existe o fue movida.
           </p>
         </div>
         <Button onClick={() => navigate('/dashboard')}>

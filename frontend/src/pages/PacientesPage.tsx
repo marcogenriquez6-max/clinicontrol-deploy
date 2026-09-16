@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Power, X, Circle, AlertTriangle, Ban, Skull, Archive, ChevronDown, Check, FolderOpen, type LucideIcon } from 'lucide-react';
-import { Button, Modal, Input, Select, FormSection, ConfirmDialog } from '../components/ui';
+import { Button, Modal, Input, Select, FormSection } from '../components/ui';
 import DataTable from '../components/ui/DataTable';
 import type { Column } from '../components/ui/DataTable';
 import { toast } from '../components/ui/Toast';
@@ -31,11 +31,8 @@ export default function PacientesPage() {
   const [filterGenero, setFilterGenero] = useState<string>('');
   const [showEstadoMenu, setShowEstadoMenu] = useState(false);
   const [showGeneroMenu, setShowGeneroMenu] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [confirmChangeState, setConfirmChangeState] = useState<number | null>(null);
-  const [pacienteConfirmId, setPacienteConfirmId] = useState<number | null>(null);
   const filterRef = useRef<HTMLDivElement>(null);
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm();
+  const { register, handleSubmit, reset, watch, formState: { errors, isDirty } } = useForm();
 
   useEffect(() => { fetchPacientes(); fetchHelpers(); }, []);
 
@@ -125,16 +122,12 @@ export default function PacientesPage() {
     setIsEstadoModalOpen(true);
   };
 
-  const openEstadoModalById = (id: number) => {
-    const paciente = pacientes.find((p) => p.id === id);
-    if (paciente) {
-      openEstadoModal(paciente);
-    }
-    setIsEstadoModalOpen(true);
-  };
-
   const handleChangeEstado = async () => {
     if (!estadoTarget?.id) return;
+    if (nuevoEstado !== 'activo' && !motivoEstado.trim()) {
+      toast('warning', 'Motivo requerido', `Al cambiar a "${ESTADOS.find(e => e.value === nuevoEstado)?.label.toLowerCase()}", indique el motivo en el campo de texto`);
+      return;
+    }
     setFormLoading(true);
     try {
       await updatePaciente(estadoTarget.id, { estado: nuevoEstado });
@@ -213,7 +206,7 @@ export default function PacientesPage() {
     { key: 'acciones', header: 'Acciones', align: 'right', render: (p) => (
       <div className="flex justify-end gap-1">
         <button title="Editar paciente" onClick={() => handleOpenModal(p)} className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-[var(--primary-600)] hover:bg-[var(--primary-50)] active:scale-95 transition-all"><Pencil className="w-4 h-4" /></button>
-        <button title="Cambiar estado" onClick={() => { setConfirmChangeState(p.id ?? null); setPacienteConfirmId(p.id ?? null); setShowConfirm(true); }} className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-amber-600 hover:bg-[var(--amber-50)] active:scale-95 transition-all"><Power className="w-4 h-4" /></button>
+        <button title="Cambiar estado" onClick={() => openEstadoModal(p)} className="p-2 rounded-lg text-[var(--text-tertiary)] hover:text-amber-600 hover:bg-[var(--amber-50)] active:scale-95 transition-all"><Power className="w-4 h-4" /></button>
       </div>
     )},
   ];
@@ -342,7 +335,10 @@ export default function PacientesPage() {
       />
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}
-        title={editingPaciente ? 'Editar Paciente' : 'Nuevo Paciente'} size="lg">
+        title={editingPaciente ? 'Editar Paciente' : 'Nuevo Paciente'} size="lg"
+        hasUnsavedChanges={isDirty}
+        unsavedTitle="Paciente sin guardar"
+        unsavedMessage="Hay cambios en el expediente que no se han guardado. ¿Desea salir?">
         {editingPaciente && <p className="text-sm text-[var(--text-secondary)] mb-4">Editando: {editingPaciente.nombre} {editingPaciente.apellido} ({editingPaciente.ci})</p>}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <FormSection title="Información Personal" color="indigo">
@@ -402,22 +398,6 @@ export default function PacientesPage() {
         </form>
       </Modal>
 
-      <ConfirmDialog
-        isOpen={showConfirm}
-        onClose={() => setShowConfirm(false)}
-        title="Cambiar estado de paciente"
-        message={`¿Estás seguro de cambiar el estado del paciente ${pacienteConfirmId ? (pacientes.find(p => p.id === pacienteConfirmId)?.nombre + ' ' + pacientes.find(p => p.id === pacienteConfirmId)?.apellido) : ''}? Esta acción es irreversible y activará/desactivará el expediente.`}
-        confirmText="Cambiar"
-        cancelText="Cancelar"
-        variant="warning"
-        onConfirm={() => {
-          setShowConfirm(false);
-          if (confirmChangeState && pacienteConfirmId) {
-            openEstadoModalById(pacienteConfirmId);
-          }
-        }}
-      />
-
       <Modal isOpen={isEstadoModalOpen} onClose={() => setIsEstadoModalOpen(false)}
         title="Cambiar Estado del Paciente" size="sm">
         {estadoTarget && (
@@ -459,11 +439,18 @@ export default function PacientesPage() {
               value={motivoEstado}
               onChange={e => setMotivoEstado(e.target.value)}
               placeholder="Opcional: explique la razón del cambio de estado"
+              required={nuevoEstado !== 'activo'}
+              error={nuevoEstado !== 'activo' && !motivoEstado.trim() ? 'Motivo requerido para este cambio' : undefined}
             />
-            <p className="text-xs text-[var(--text-secondary)] italic">El paciente no podrá agendar nuevas citas si se marca como inactivo.</p>
+            {nuevoEstado !== 'activo' && (
+              <p className="text-xs text-amber-600 font-medium flex items-center gap-1.5 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                Este cambio es <strong>irreversible</strong>. El paciente no podrá agendar nuevas citas mientras esté en este estado.
+              </p>
+            )}
             <div className="flex justify-end gap-3 pt-2">
               <Button variant="secondary" onClick={() => setIsEstadoModalOpen(false)}>Cancelar</Button>
-              <Button onClick={handleChangeEstado} loading={formLoading}>
+              <Button onClick={handleChangeEstado} loading={formLoading} disabled={nuevoEstado !== 'activo' && !motivoEstado.trim()}>
                 Cambiar a {ESTADOS.find(e => e.value === nuevoEstado)?.label}
               </Button>
             </div>

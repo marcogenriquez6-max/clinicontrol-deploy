@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Shield, Plus, Pencil, Check } from 'lucide-react';
-import { PageHeader, Card, Button, Modal, Input, Badge } from '../components/ui';
+import { PageHeader, Card, Button, Modal, Input, Badge, toast } from '../components/ui';
 import { rolService } from '../api/services';
 import api from '../api/axios';
 import { ROLES_MATRIZ, type RolInfo } from '../data/rbac';
 import type { Rol } from '../types';
-import Swal from 'sweetalert2';
 
 const ROLE_COLORS: Record<string, string> = {
   admin: 'from-slate-700 to-slate-800',
@@ -106,12 +105,12 @@ export default function RolesPage() {
       } else {
         await api.post('/roles', formData);
       }
-      Swal.fire({ icon: 'success', title: editingRol ? 'Actualizado' : 'Creado', timer: 1500, showConfirmButton: false });
+      toast('success', editingRol ? 'Rol actualizado' : 'Rol creado', `El rol fue ${editingRol ? 'actualizado' : 'creado'} correctamente.`);
       setModalOpen(false);
       loadRoles();
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Error al guardar';
-      Swal.fire({ icon: 'error', title: 'Error', text: message });
+      toast('error', 'Error', message);
     } finally { setSaving(false); }
   };
 

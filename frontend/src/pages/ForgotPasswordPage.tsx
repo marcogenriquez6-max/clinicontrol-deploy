@@ -17,10 +17,9 @@ export default function ForgotPasswordPage() {
     try {
       await authService.forgotPassword(data.email);
       setSent(true);
-      toast('success', 'Solicitud enviada', 'Si el email existe, recibirás un enlace para restablecer tu contraseña.');
+      toast('success', 'Solicitud enviada', 'Si el correo existe, recibirá un enlace para restablecer su contraseña.');
     } catch {
-      setError('Error al procesar la solicitud. Intente nuevamente.');
-      toast('error', 'Error', 'No se pudo procesar la solicitud.');
+      setError('No se pudo procesar la solicitud. Verifique el correo e intente nuevamente.');
     } finally {
       setLoading(false);
     }
@@ -84,10 +83,10 @@ export default function ForgotPasswordPage() {
                   placeholder=""
                   required
                   error={errors.email?.message as string}
-                  {...register('email', { required: 'El email es requerido', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Ingrese un email válido' } })}
+                  {...register('email', { required: 'El correo es requerido', pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Ingrese un correo válido' } })}
                 />
 
-                <Button type="submit" className="w-full" variant="primary" size="lg" loading={loading}>
+<Button type="submit" className="w-full" variant="primary" size="lg" loading={loading}>
                   <Mail className="w-4 h-4" />
                   Enviar enlace de recuperación
                 </Button>

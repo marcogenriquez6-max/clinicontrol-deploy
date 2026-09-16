@@ -102,7 +102,6 @@ export class ConsultaService {
       'recetas',
       'recetas.items',
       'recetas.items.medicamento',
-      'examenes',
     ]);
     if (!consulta)
       throw new NotFoundException(`Consulta con ID ${id} no encontrada`);
@@ -291,6 +290,22 @@ export class ConsultaService {
       consultaOriginalId,
       dto.motivoContinuacion,
     );
+
+    if (!dto.diagnosticos?.length) {
+      errores.push(
+        'Debe registrar al menos un diagnóstico CIE-10 para cerrar la consulta',
+      );
+    } else {
+      const sinCie10 = dto.diagnosticos.some(
+        (d) => !d.cie10Id && !d.codigoCie10,
+      );
+      if (sinCie10) {
+        errores.push(
+          'Cada diagnóstico debe seleccionarse del catálogo CIE-10 (código o ID obligatorio)',
+        );
+      }
+    }
+
     if (errores.length > 0) throw new BadRequestException(errores.join('; '));
 
     const consulta = new ConsultaDomain({
@@ -312,6 +327,12 @@ export class ConsultaService {
       dto.motivoContinuacion || '',
     );
 
+    if (dto.diagnosticos) {
+      for (const diag of dto.diagnosticos) {
+        consulta.agregarDiagnostico(diag);
+      }
+    }
+
     if (dto.peso || dto.talla || dto.temperatura || dto.frecuenciaCardiaca) {
       consulta.agregarSignosVitales({
         presionArterialSistolica: dto.presionArterialSistolica,
@@ -326,7 +347,33 @@ export class ConsultaService {
       });
     }
 
-    return this.consultaRepository.save(consulta);
+    const saved = await this.consultaRepository.save(consulta);
+
+    if (dto.recetas && dto.recetas.length > 0 && saved.id) {
+      await this.recetaService.create({
+        consultaId: saved.id,
+        instrucciones: dto.indicaciones,
+        medicamentos: dto.recetas.map((r) => ({
+          medicamentoId: r.medicamentoId,
+          dosis: r.dosis,
+          frecuencia: r.frecuencia,
+          duracion: r.duracion,
+          cantidad: r.cantidad,
+          observaciones: r.observaciones,
+        })),
+      });
+      return (
+        (await this.consultaRepository.findByIdWithRelations(saved.id, [
+          'diagnosticos',
+          'diagnosticos.cie10',
+          'recetas',
+          'recetas.items',
+          'recetas.items.medicamento',
+        ])) ?? saved
+      );
+    }
+
+    return saved;
   }
 
   async getPacienteTimeline(pacienteId: number): Promise<{

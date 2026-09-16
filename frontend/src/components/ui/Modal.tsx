@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useState, useRef, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { X, AlertTriangle } from 'lucide-react';
+import ConfirmDialog from './ConfirmDialog';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,6 +11,10 @@ interface ModalProps {
   showClose?: boolean;
   preventClose?: boolean;
   accent?: 'primary' | 'success' | 'danger' | 'warning' | 'accent' | 'fuchsia' | 'rose';
+  /** Si hay cambios sin guardar, al cerrar se muestra una confirmación antes de perderlos. */
+  hasUnsavedChanges?: boolean;
+  unsavedTitle?: string;
+  unsavedMessage?: string;
 }
 
 const accentBars: Record<string, string> = {
@@ -22,14 +27,23 @@ const accentBars: Record<string, string> = {
   rose: 'bg-gradient-to-r from-[var(--rose-500)] to-[var(--rose-600)]',
 };
 
-export default function Modal({ isOpen, onClose, title, children, size = 'md', showClose = true, preventClose = false, accent }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, size = 'md', showClose = true, preventClose = false, accent, hasUnsavedChanges = false, unsavedTitle = 'Cambios sin guardar', unsavedMessage = 'Hay cambios sin guardar. ¿Salir de todos modos?' }: ModalProps) {
   const [visible, setVisible] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  const requestClose = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setConfirmClose(true);
+    } else {
+      onClose();
+    }
+  }, [hasUnsavedChanges, onClose]);
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Escape' && !preventClose) onClose();
-  }, [onClose, preventClose]);
+    if (e.key === 'Escape' && !preventClose) requestClose();
+  }, [preventClose, requestClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -70,7 +84,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', s
         className={`fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm transition-all duration-300 ${
           visible ? 'opacity-100' : 'opacity-0'
         }`}
-        onClick={() => !preventClose && onClose()}
+        onClick={() => !preventClose && requestClose()}
       />
 
       {/* Scroll container */}
@@ -87,7 +101,7 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', s
               <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
               {showClose && (
                 <button
-                  onClick={onClose}
+                  onClick={requestClose}
                   className="p-1.5 rounded-xl text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-all duration-200 active:scale-90"
                 >
                   <X className="w-5 h-5" />
@@ -98,6 +112,19 @@ export default function Modal({ isOpen, onClose, title, children, size = 'md', s
           </div>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmClose}
+        onClose={() => setConfirmClose(false)}
+        onConfirm={() => { setConfirmClose(false); onClose(); }}
+        title={unsavedTitle}
+        message={unsavedMessage}
+        confirmText="Salir sin guardar"
+        cancelText="Continuar editando"
+        variant="warning"
+        icon={<AlertTriangle className="w-10 h-10 text-amber-500" />}
+        detail="Los cambios que haya realizado en este formulario no se guardarán si continúa."
+      />
     </>
   );
 }

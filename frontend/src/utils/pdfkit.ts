@@ -2,7 +2,7 @@ import pdfMake from 'pdfmake/build/pdfmake';
 import pdfFonts from 'pdfmake/build/vfs_fonts';
 import type { TDocumentDefinitions, Content } from 'pdfmake/interfaces';
 
-(pdfMake as any).vfs = pdfFonts.pdfMake.vfs;
+const pdfMakeInstance = pdfMake; pdfMakeInstance.vfs = pdfFonts.pdfMake.vfs;
 
 const AZUL = '#1e5a8a';
 const VERDE = '#1f7a5c';

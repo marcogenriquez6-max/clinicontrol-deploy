@@ -13,8 +13,9 @@ const NOMBRE_ROL: Record<string, string> = { admin: 'Administrador', gerente: 'G
 /** Administración → Permisos: matriz rol × módulos y permisos del sistema (solo lectura). */
 export default function PermisosPage() {
   const [roles, setRoles] = useState<PermisoRol[]>([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
-    permisosService.getMatriz().then((r) => setRoles(lista<PermisoRol>(r))).catch((e) => toast('error', 'No se pudo cargar la matriz', errMsg(e)));
+    permisosService.getMatriz().then((r) => setRoles(lista<PermisoRol>(r))).catch((e) => toast('error', 'No se pudo cargar la matriz', errMsg(e))).finally(() => setLoading(false));
   }, []);
   const modulos = Array.from(new Set(roles.flatMap((r) => r.modulos)));
 
@@ -32,9 +33,13 @@ export default function PermisosPage() {
           <table className="table-premium w-full text-sm">
             <thead><tr><th>Módulo</th>{roles.map((r) => <th key={r.rol} className="text-center">{NOMBRE_ROL[r.rol] ?? r.rol}</th>)}</tr></thead>
             <tbody>
-              {modulos.map((m) => (
+              {loading ? (
+                <tr><td colSpan={roles.length + 1} className="text-center py-8 text-[var(--text-tertiary)]">Cargando matriz…</td></tr>
+              ) : (
+              modulos.map((m) => (
                 <tr key={m}><td className="font-medium text-[var(--text-primary)]">{m}</td>{roles.map((r) => <td key={r.rol} className="text-center">{r.modulos.includes(m) ? <span className="inline-block w-5 h-5 rounded-full bg-[var(--success-100)] text-[var(--success-700)] text-xs leading-5 font-bold">✓</span> : <span className="text-[var(--text-tertiary)]">—</span>}</td>)}</tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>

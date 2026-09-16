@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { Printer, RefreshCw, CalendarRange } from 'lucide-react';
-import { Button, Card, Input } from '../ui';
+import { Printer, RefreshCw } from 'lucide-react';
+import { Button, Input } from '../ui';
 import { toast } from '../ui/Toast';
 import { errMsg } from '../../api/errMsg';
 import { useAuthStore } from '../../store/authStore';
@@ -103,7 +103,7 @@ export default function ReportePanel({ reportes, encabezado, conPeriodo = true }
             key={r.id}
             onClick={() => setActivo(r.id)}
             className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-              r.id === def?.id
+              r.id === activo
                 ? 'bg-[var(--primary-50)] border-[var(--primary-300)] text-[var(--primary-700)]'
                 : 'bg-[var(--bg-card)] border-[var(--border-primary)] text-[var(--text-secondary)] hover:border-[var(--primary-300)]'
             }`}
@@ -113,49 +113,58 @@ export default function ReportePanel({ reportes, encabezado, conPeriodo = true }
         ))}
       </div>
 
-      <Card>
-        <div className="flex flex-col lg:flex-row lg:items-end gap-4">
-          <div className="flex-1">
-            <h2 className="text-base font-semibold text-[var(--text-primary)]">{def?.titulo}</h2>
-            {def?.descripcion && <p className="text-sm text-[var(--text-secondary)]">{def.descripcion}</p>}
-          </div>
-          {conPeriodo && (
-            <div className="flex flex-wrap items-end gap-3">
-              <Input label="Desde" type="date" value={periodo.fechaInicio} onChange={(e) => setPeriodo((p) => ({ ...p, fechaInicio: e.target.value }))} />
-              <Input label="Hasta" type="date" value={periodo.fechaFin} onChange={(e) => setPeriodo((p) => ({ ...p, fechaFin: e.target.value }))} />
-              <Button variant="secondary" onClick={generar} loading={loading}>
-                <CalendarRange className="w-4 h-4" />Generar
-              </Button>
-            </div>
-          )}
-          {!conPeriodo && (
-            <Button variant="secondary" onClick={generar} loading={loading}><RefreshCw className="w-4 h-4" />Actualizar</Button>
-          )}
-          <Button onClick={imprimir} loading={imprimiendo} disabled={loading || secciones.length === 0}>
-            <Printer className="w-4 h-4" />Imprimir
-          </Button>
+      {/* Barra de filtro e impresión */}
+      <div className="bg-[var(--bg-card)] rounded-lg border border-[var(--border-primary)] p-6 mt-6 flex flex-col lg:flex-row lg:items-end gap-4">
+        <div className="flex-1">
+          <h2 className="text-base font-semibold text-[var(--text-primary)]">{def?.titulo}</h2>
+          {def?.descripcion && <p className="text-sm text-[var(--text-secondary)]">{def.descripcion}</p>}
         </div>
-      </Card>
+        {conPeriodo && (
+          <div className="flex flex-wrap items-end gap-3">
+            <Input label="Desde" type="date" value={periodo.fechaInicio} onChange={(e) => setPeriodo((p) => ({ ...p, fechaInicio: e.target.value }))} />
+            <Input label="Hasta" type="date" value={periodo.fechaFin} onChange={(e) => setPeriodo((p) => ({ ...p, fechaFin: e.target.value }))} />
+            <Button variant="secondary" onClick={generar} loading={loading}>
+              <RefreshCw className="w-4 h-4" />Generar
+            </Button>
+          </div>
+        )}
+        {!conPeriodo && (
+          <Button variant="secondary" onClick={generar} loading={loading}><RefreshCw className="w-4 h-4" />Actualizar</Button>
+        )}
+        <Button onClick={imprimir} loading={imprimiendo} disabled={loading || secciones.length === 0}>
+          <Printer className="w-4 h-4" />Imprimir
+        </Button>
+      </div>
 
+      {/* Mostrar secciones sin Card wrapper - solo listas y tablas */}
       {loading && secciones.length === 0 ? (
-        <Card><p className="text-sm text-center py-8 text-[var(--text-tertiary)]">Generando reporte…</p></Card>
+        <div className="bg-[var(--bg-card)] rounded-lg border border-[var(--border-primary)] p-6 mt-6 space-y-4">
+          <div className="h-6 shimmer rounded-lg w-1/3" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[1, 2, 3, 4].map((k) => <div key={k} className="h-20 shimmer rounded-lg" />)}
+          </div>
+          {[1, 2, 3, 4].map((r) => <div key={r} className="h-10 shimmer rounded-lg" />)}
+        </div>
       ) : (
         secciones.map((s) => (
-          <Card key={s.titulo} title={s.titulo}>
+          <div key={s.titulo} className="bg-[var(--bg-card)] rounded-lg border border-[var(--border-primary)] p-6 mt-6">
+            <h2 className="text-xl font-semibold text-[var(--text-primary)] mb-4">{s.titulo}</h2>
+            
             {s.resumen && s.resumen.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
                 {s.resumen.map((k) => (
-                  <div key={k.label} className="rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] px-4 py-3">
+                  <div key={k.label} className="rounded border border-[var(--border-primary)] p-3">
                     <p className="text-2xl font-bold tabular-nums text-[var(--text-primary)]">{k.value}</p>
                     <p className="text-xs uppercase tracking-wide text-[var(--text-tertiary)]">{k.label}</p>
                   </div>
                 ))}
               </div>
             )}
-            {s.columnas && (
-              <div className="overflow-x-auto">
+            
+            {s.columnas && s.columnas.length > 0 && (
+              <div className="overflow-x-auto mt-4">
                 {(s.filas ?? []).length === 0 ? (
-                  <p className="text-sm text-[var(--text-tertiary)] py-4 text-center">{s.vacio ?? 'Sin registros en el período'}</p>
+                  <p className="text-sm text-[var(--text-tertiary)] py-4 text-center">Sin registros en el período</p>
                 ) : (
                   <table className="table-premium w-full text-sm">
                     <thead>
@@ -179,7 +188,7 @@ export default function ReportePanel({ reportes, encabezado, conPeriodo = true }
                 )}
               </div>
             )}
-          </Card>
+          </div>
         ))
       )}
     </div>

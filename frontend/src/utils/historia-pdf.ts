@@ -1,7 +1,7 @@
 import { encabezadoInstitucional, obtenerLogo, descargarPdf, crearDocumentoPdf, tituloSeccion, tablaInformacionFilas, COLORES } from './pdfkit';
 import type { Content } from 'pdfmake/interfaces';
 
-const getValue = (obj: any, ...keys: string[]) => {
+const getValue = (obj: unknown, ...keys: string[]) => {
   for (const key of keys) {
     const v = obj?.[key];
     if (v !== undefined && v !== null) return v;
@@ -9,9 +9,9 @@ const getValue = (obj: any, ...keys: string[]) => {
   return null;
 };
 
-const fmtFecha = (f: any) => {
+const fmtFecha = (f: unknown) => {
   if (!f) return '—';
-  const d = new Date(f);
+  const d = new Date(f as string | number | Date);
   if (Number.isNaN(d.getTime())) return String(f);
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
 };

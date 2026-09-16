@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
-import { ChevronDown, ChevronLeft, LogOut } from 'lucide-react';
+import { ChevronDown, ChevronLeft } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { navGroups, type NavGroup } from '../../data/navigation';
 import Logo from '../ui/Logo';
@@ -13,7 +13,7 @@ interface SidebarProps {
 export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, user } = useAuthStore();
+  const { user } = useAuthStore();
   const open = !collapsed;
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
@@ -85,17 +85,20 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
             const isOpen = expanded[group.section] ?? groupActive;
 
             if (!open) {
+              const single = group.items.length === 1;
+              const label = single ? group.items[0].label : group.section;
+              const path = single ? group.items[0].path : null;
               return (
-                <div key={group.section} className="relative">
-                  {group.items.length === 1 ? (
+                <div key={group.section} className="relative group">
+                  {single ? (
                     <button
-                      onClick={() => navigate(group.items[0].path)}
+                      onClick={() => navigate(path!)}
                       className="w-full flex items-center justify-center p-2 rounded-lg transition-colors"
                       style={{
-                        color: isActive(group.items[0].path) ? 'var(--primary-500)' : 'var(--text-tertiary)',
-                        backgroundColor: isActive(group.items[0].path) ? 'var(--primary-100)' : 'transparent',
+                        color: isActive(path!) ? 'var(--primary-500)' : 'var(--text-tertiary)',
+                        backgroundColor: isActive(path!) ? 'var(--primary-100)' : 'transparent',
                       }}
-                      title={group.items[0].label}
+                      aria-label={label}
                     >
                       <Icon className="w-5 h-5" />
                     </button>
@@ -107,10 +110,44 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
                         color: groupActive ? 'var(--primary-500)' : 'var(--text-tertiary)',
                         backgroundColor: groupActive ? 'var(--primary-100)' : 'transparent',
                       }}
-                      title={group.section}
+                      aria-label={label}
                     >
                       <Icon className="w-5 h-5" />
                     </button>
+                  )}
+                  {/* Tooltip popover */}
+                  {!open && (
+                    <div
+                      className="absolute left-full top-1/2 -translate-y-1/2 ml-2 hidden group-hover:block z-50"
+                      role="tooltip"
+                    >
+                      <div className="min-w-[10rem] rounded-xl border shadow-xl p-2.5"
+                        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                        <p className="text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: 'var(--text-tertiary)' }}>{group.section}</p>
+                        {single ? (
+                          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{group.items[0].label}</p>
+                        ) : (
+                          <div className="space-y-0.5">
+                            {group.items.map(item => (
+                              <button
+                                key={item.path}
+                                onClick={() => navigate(item.path)}
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
+                                  isActive(item.path) ? '' : ''
+                                }`}
+                                style={{
+                                  color: isActive(item.path) ? 'var(--primary-500)' : 'var(--text-secondary)',
+                                  backgroundColor: isActive(item.path) ? 'var(--primary-50)' : 'transparent',
+                                }}
+                              >
+                                <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                                {item.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
                 </div>
               );
@@ -172,20 +209,10 @@ export default function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) 
               {user?.nombre?.charAt(0) || 'U'}
             </div>
             {open && (
-              <>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user?.nombre || 'Usuario'}</p>
-                  <p className="text-xs truncate capitalize" style={{ color: 'var(--text-tertiary)' }}>{user?.rol || ''}</p>
-                </div>
-                <button
-                  onClick={() => { logout(); navigate('/login'); }}
-                  className="p-1.5 rounded-md transition-colors"
-                  style={{ color: 'var(--text-tertiary)' }}
-                  title="Cerrar sesión"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{user?.nombre || 'Usuario'}</p>
+                <p className="text-xs truncate capitalize" style={{ color: 'var(--text-tertiary)' }}>{user?.rol || ''}</p>
+              </div>
             )}
           </div>
         </div>

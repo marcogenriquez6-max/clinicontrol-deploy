@@ -29,22 +29,22 @@ export default function VacunasPage() {
 
   const fetchVacunas = async () => {
     try { const res = await vacunaService.getAll(); setVacunas(res.data ?? []); }
-    catch { console.error('Error al cargar vacunas'); }
+    catch { console.error('Error al cargar vacunas'); toast('error', 'Error al cargar vacunas', 'No se pudo obtener el catálogo de vacunas.'); }
   };
 
   const fetchPacientes = async () => {
     try { const res = await pacienteService.getAll(); setPacientes(res.data ?? []); }
-    catch { console.error('Error al cargar pacientes'); }
+    catch { console.error('Error al cargar pacientes'); toast('error', 'Error al cargar pacientes', 'No se pudo obtener la lista de pacientes.'); }
   };
 
   const fetchPatientVacunas = async (pacienteId: number) => {
     try { const res = await vacunaService.getByPaciente(pacienteId); setPatientVacunas(res.data ?? []); }
-    catch { console.error('Error al cargar vacunas del paciente'); }
+    catch { console.error('Error al cargar vacunas del paciente'); toast('error', 'Error al cargar vacunas', 'No se pudo obtener el historial de vacunas del paciente.'); }
   };
 
   const fetchCalendario = async (pacienteId: number) => {
     try { const res = await vacunaService.getCalendario(pacienteId); setCalendario(res.data ?? []); }
-    catch { console.error('Error al cargar calendario'); }
+    catch { console.error('Error al cargar calendario'); toast('error', 'Error al cargar calendario', 'No se pudo obtener el calendario de vacunación.'); }
   };
 
   useEffect(() => {
@@ -56,7 +56,7 @@ export default function VacunasPage() {
     };
     init();
     return () => { cancelado = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const handleOpenCatalogModal = (vacuna?: Vacuna) => {

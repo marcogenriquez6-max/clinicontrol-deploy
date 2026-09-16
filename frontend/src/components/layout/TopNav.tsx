@@ -6,6 +6,10 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { useTheme } from '../../hooks/useTheme';
 import { pacienteService } from '../../api/services';
+import { toast } from '../ui';
+
+const ROLES_FICHA_CLINICA = ['medico', 'enfermeria'];
+const ROLES_PADRON = ['recepcionista', 'secretaria'];
 
 interface SearchResult {
   type: 'paciente' | 'medico';
@@ -26,6 +30,7 @@ export default function TopNav({ collapsed }: TopNavProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
@@ -40,7 +45,8 @@ export default function TopNav({ collapsed }: TopNavProps) {
   }, []);
 
   const doSearch = (term: string) => {
-    if (term.length < 2) { setResults([]); setShowResults(false); return; }
+    if (term.length < 2) { setResults([]); setShowResults(false); setSearching(false); return; }
+    setSearching(true);
     (async () => {
       try {
         const pRes = await pacienteService.getAll().catch(() => ({ data: [] }));
@@ -56,6 +62,7 @@ export default function TopNav({ collapsed }: TopNavProps) {
         setResults(found.slice(0, 8));
         setShowResults(true);
       } catch { setResults([]); }
+      finally { setSearching(false); }
     })();
   };
 
@@ -68,7 +75,14 @@ export default function TopNav({ collapsed }: TopNavProps) {
   const handleResultClick = (r: SearchResult) => {
     setShowResults(false);
     setSearchTerm('');
-    if (r.type === 'paciente') navigate(`/historia-clinica?pacienteId=${r.id}`);
+    const rol = user?.rol ?? '';
+    if (ROLES_FICHA_CLINICA.includes(rol)) {
+      navigate(`/historia-clinica?paciente=${r.id}`);
+    } else if (ROLES_PADRON.includes(rol)) {
+      navigate('/pacientes');
+    } else {
+      toast('info', 'Sin acceso', 'Su rol no permite abrir la ficha del paciente.');
+    }
   };
 
   return (
@@ -84,6 +98,12 @@ export default function TopNav({ collapsed }: TopNavProps) {
         <div ref={searchContainerRef} className={`relative items-center flex-1 max-w-md ${searchOpen ? 'flex' : 'hidden md:flex'}`}>
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-tertiary)' }} />
+            {searching && (
+              <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin" viewBox="0 0 24 24" style={{ color: 'var(--text-tertiary)' }}>
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
             <input
               type="text"
               placeholder="Buscar pacientes..."

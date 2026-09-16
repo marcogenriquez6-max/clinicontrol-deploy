@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, BedDouble, LogOut, FileText, NotebookPen, ClipboardList, RefreshCw } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { Button, Modal, Input, Select, Textarea, FormSection, Card, Badge } from '../components/ui';
+import { Button, Modal, Input, Select, Textarea, FormSection, Card, Badge, DataTable, type Column } from '../components/ui';
 import PageHeader from '../components/ui/PageHeader';
 import { toast } from '../components/ui/Toast';
 import { useStore } from '../store';
@@ -154,6 +154,29 @@ export default function HospitalizacionPage() {
     </Button>
   );
 
+  const colInternaciones: Column<Hospitalizacion>[] = [
+    { key: 'fechaIngreso', header: 'Ingreso', render: (h) => <span className="tabular-nums whitespace-nowrap">{fmtFecha(h.fechaIngreso, true)}</span> },
+    { key: 'pacienteId', header: 'Paciente', render: (h) => <><p className="font-medium text-[var(--text-primary)]">{pName(h.pacienteId)}</p><p className="text-xs text-[var(--text-tertiary)]">CI {pCI(h.pacienteId) || '—'}</p></> },
+    { key: 'camaId', header: 'Cama', render: (h) => <span className="font-semibold">{cName(h.camaId)}</span> },
+    { key: 'medicoTratanteId', header: 'Médico responsable', render: (h) => mName(h.medicoTratanteId) },
+    { key: 'diagnosticoIngreso', header: 'Diagnóstico', truncate: true, render: (h) => h.diagnosticoIngreso || h.motivoIngreso || '—' },
+    { key: 'estado', header: 'Estado', render: (h) => <Badge variant="info">{ESTADO_HOSP[h.estado] || h.estado}</Badge> },
+    { key: 'acciones', header: 'Acciones', align: 'right', hideable: false, render: (h) => (
+      <div className="inline-flex gap-1 justify-end">
+        <Button size="sm" variant="secondary" onClick={() => { notaForm.reset({ nota: '', plan: '', indicaciones: '' }); setNotaTarget(h); }}><NotebookPen className="w-4 h-4" />Evolución</Button>
+        <Button size="sm" onClick={() => { altaForm.reset({ diagnosticoAlta: '', notasAlta: '' }); setAltaTarget(h); }}><LogOut className="w-4 h-4" />Alta</Button>
+      </div>
+    ) },
+  ];
+
+  const colAltas: Column<Hospitalizacion>[] = [
+    { key: 'fechaAlta', header: 'Alta', render: (h) => <span className="tabular-nums">{fmtFecha(h.fechaAlta ?? undefined, true)}</span> },
+    { key: 'pacienteId', header: 'Paciente', render: (h) => <span className="font-medium">{pName(h.pacienteId)}</span> },
+    { key: 'fechaIngreso', header: 'Ingreso', render: (h) => <span className="tabular-nums">{fmtFecha(h.fechaIngreso)}</span> },
+    { key: 'medicoTratanteId', header: 'Médico', render: (h) => mName(h.medicoTratanteId) },
+    { key: 'diagnosticoAlta', header: 'Diagnóstico de alta', render: (h) => (h as unknown as { diagnosticoAlta?: string }).diagnosticoAlta || '—' },
+  ];
+
   return (
     <div className="space-y-6">
       <PageHeader icon={BedDouble} title="Hospitalización" subtitle="Control de camas, internaciones, evolución diaria y altas médicas"
@@ -194,26 +217,16 @@ export default function HospitalizacionPage() {
 
       {seccion === 'internaciones' && (
         <Card title="Pacientes internados" subtitle="Fecha de ingreso, diagnóstico, médico responsable y cama asignada" className="!p-0 overflow-hidden">
-          <table className="table-premium w-full text-sm">
-            <thead><tr><th>Ingreso</th><th>Paciente</th><th>Cama</th><th>Médico responsable</th><th>Diagnóstico</th><th>Estado</th><th className="text-right">Acciones</th></tr></thead>
-            <tbody>
-              {activos.length === 0 && <tr><td colSpan={7} className="text-center py-10 text-[var(--text-tertiary)]">No hay pacientes internados</td></tr>}
-              {activos.map((h) => (
-                <tr key={h.id}>
-                  <td className="tabular-nums whitespace-nowrap">{fmtFecha(h.fechaIngreso, true)}</td>
-                  <td><p className="font-medium text-[var(--text-primary)]">{pName(h.pacienteId)}</p><p className="text-xs text-[var(--text-tertiary)]">CI {pCI(h.pacienteId) || '—'}</p></td>
-                  <td className="font-semibold">{cName(h.camaId)}</td>
-                  <td>{mName(h.medicoTratanteId)}</td>
-                  <td className="max-w-[260px] truncate" title={h.diagnosticoIngreso || h.motivoIngreso}>{h.diagnosticoIngreso || h.motivoIngreso || '—'}</td>
-                  <td><Badge variant="info">{ESTADO_HOSP[h.estado] || h.estado}</Badge></td>
-                  <td className="text-right"><div className="inline-flex gap-1">
-                    <Button size="sm" variant="secondary" onClick={() => { notaForm.reset({ nota: '', plan: '', indicaciones: '' }); setNotaTarget(h); }}><NotebookPen className="w-4 h-4" />Evolución</Button>
-                    <Button size="sm" onClick={() => { altaForm.reset({ diagnosticoAlta: '', notasAlta: '' }); setAltaTarget(h); }}><LogOut className="w-4 h-4" />Alta</Button>
-                  </div></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <DataTable
+            columns={colInternaciones}
+            data={activos}
+            keyExtractor={(h) => h.id}
+            loading={loading && activos.length === 0}
+            pageSize={10}
+            searchable={activos.length > 5}
+            searchPlaceholder="Buscar internado..."
+            emptyMessage="No hay pacientes internados"
+          />
         </Card>
       )}
 
@@ -264,15 +277,16 @@ export default function HospitalizacionPage() {
             </table>
           </Card>
           <Card title="Altas registradas" subtitle={`${dadosDeAlta.length} alta(s)`} className="!p-0 overflow-hidden">
-            <table className="table-premium w-full text-sm">
-              <thead><tr><th>Alta</th><th>Paciente</th><th>Ingreso</th><th>Médico</th><th>Diagnóstico de alta</th></tr></thead>
-              <tbody>
-                {dadosDeAlta.length === 0 && <tr><td colSpan={5} className="text-center py-8 text-[var(--text-tertiary)]">Sin altas registradas</td></tr>}
-                {dadosDeAlta.map((h) => (
-                  <tr key={h.id}><td className="tabular-nums">{fmtFecha(h.fechaAlta ?? undefined, true)}</td><td className="font-medium">{pName(h.pacienteId)}</td><td className="tabular-nums">{fmtFecha(h.fechaIngreso)}</td><td>{mName(h.medicoTratanteId)}</td><td>{(h as unknown as { diagnosticoAlta?: string }).diagnosticoAlta || '—'}</td></tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              columns={colAltas}
+              data={dadosDeAlta}
+              keyExtractor={(h) => h.id}
+              loading={loading && dadosDeAlta.length === 0}
+              pageSize={10}
+              searchable={dadosDeAlta.length > 5}
+              searchPlaceholder="Buscar alta..."
+              emptyMessage="Sin altas registradas"
+            />
           </Card>
         </>
       )}

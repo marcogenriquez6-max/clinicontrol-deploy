@@ -32,7 +32,7 @@ export default function ArqueoPage() {
     const init = async () => { if (!cancelado) await fetchArqueos(); };
     init();
     return () => { cancelado = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   const crearArqueo = async () => {

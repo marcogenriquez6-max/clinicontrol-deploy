@@ -54,6 +54,7 @@ export default function DashboardPage() {
   }, []);
 
   const esperando = turnos.filter((t) => t.estado === 'espera' || t.estado === 'llamado');
+  const sinDatos = !loading && !ind;
   const hoy = new Date().toLocaleDateString('es-BO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   return (
@@ -65,10 +66,10 @@ export default function DashboardPage() {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Users} label="Pacientes registrados hoy" value={ind?.pacientesDelDia ?? 0} color="blue" badge={`${ind?.totalPacientes ?? 0} en padrón`} loading={loading} />
-        <KpiCard icon={Calendar} label="Citas de hoy" value={ind?.citasHoy ?? 0} color="violet" loading={loading} />
-        <KpiCard icon={Ticket} label="Turnos emitidos hoy" value={ind?.turnosHoy ?? 0} color="amber" badge={`${esperando.length} esperando`} loading={loading} />
-        <KpiCard icon={Banknote} label="Pagos registrados hoy" value={fmtBs(ind?.pagosHoy?.total ?? 0)} color="emerald" badge={`${ind?.pagosHoy?.cantidad ?? 0} recibo(s)`} loading={loading} />
+        <KpiCard icon={Users} label="Pacientes registrados hoy" value={sinDatos ? '—' : (ind?.pacientesDelDia ?? 0)} color="blue" badge={sinDatos ? undefined : `${ind?.totalPacientes ?? 0} en padrón`} loading={loading} />
+        <KpiCard icon={Calendar} label="Citas de hoy" value={sinDatos ? '—' : (ind?.citasHoy ?? 0)} color="violet" loading={loading} />
+        <KpiCard icon={Ticket} label="Turnos emitidos hoy" value={sinDatos ? '—' : (ind?.turnosHoy ?? 0)} color="amber" badge={sinDatos ? undefined : `${esperando.length} esperando`} loading={loading} />
+        <KpiCard icon={Banknote} label="Pagos registrados hoy" value={sinDatos ? '—' : fmtBs(ind?.pagosHoy?.total ?? 0)} color="emerald" badge={sinDatos ? undefined : `${ind?.pagosHoy?.cantidad ?? 0} recibo(s)`} loading={loading} />
       </div>
 
       <Card title="Flujo del paciente" subtitle="Registrar o recuperar expediente → cita → turno → pago → recibo">
@@ -102,7 +103,12 @@ export default function DashboardPage() {
                     <span className="w-14 h-8 rounded-md flex items-center justify-center text-xs font-bold text-white tabular-nums" style={{ backgroundColor: 'var(--warning-500)' }}>{numeroTurno(p.numero, p.prefijo)}</span>
                     <div className="min-w-0"><p className="text-sm font-medium truncate text-[var(--text-primary)]">{p.pacienteNombre}</p><p className="text-xs text-[var(--text-tertiary)] truncate">{p.concepto}</p></div>
                   </div>
-                  <span className="text-sm font-semibold tabular-nums">{fmtBs(p.monto)}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-sm font-semibold tabular-nums">{fmtBs(p.monto)}</span>
+                    <Button size="sm" variant="success" onClick={() => navigate('/pagos')} title="Cobrar este turno">
+                      <Banknote className="w-3.5 h-3.5" />Cobrar
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
