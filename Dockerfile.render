@@ -7,20 +7,14 @@
 # Construcción: docker build -f Dockerfile.render .
 # ============================================================
 
-# ---------- Dependencias de producción (depuradas) ----------
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-COPY backend/package.json backend/package.json
-COPY frontend/package.json frontend/package.json
-RUN npm ci --omit=dev --no-audit --no-fund
-
-# ---------- Compilación de backend y frontend ----------
+# ---------- Compilación (require herramientas nativas) ----------
 FROM node:22-alpine AS builder
+RUN apk add --no-cache python3 make gcc g++
 WORKDIR /app
+
 COPY package.json package-lock.json ./
-COPY backend/package.json backend/package.json
-COPY frontend/package.json frontend/package.json
+COPY backend/package.json ./backend/package.json
+COPY frontend/package.json ./frontend/package.json
 RUN npm ci --no-audit --no-fund
 COPY backend ./backend
 COPY frontend ./frontend
@@ -36,7 +30,7 @@ RUN apk add --no-cache nginx tini
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4000
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/package.json ./backend/package.json
 COPY --from=builder /app/frontend/dist ./frontend/dist
